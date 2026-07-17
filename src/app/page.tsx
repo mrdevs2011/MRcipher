@@ -11,7 +11,7 @@ export default function HomePage() {
       <h1>MRcipher</h1>
       <p>
         Universal, API-first Encryption-as-a-Service. Quyidagi endpointlarga har
-        qanday JSON-serializable ma'lumot yuboring va AES-256-GCM shifrlangan
+        qanday JSON-serializable ma&apos;lumot yuboring va AES-256-GCM shifrlangan
         qutini qaytarib oling.
       </p>
 
@@ -56,8 +56,8 @@ export default function HomePage() {
       </pre>
 
       <p style={{ marginTop: '2rem', color: '#6b7280' }}>
-        Firestore sozlamalari, kalit yaratish va xavfsizlik bo'yicha ko'rsatmalar
-        uchun README faylini ko'ring.
+        Firestore sozlamalari, kalit yaratish va xavfsizlik bo&apos;yicha ko&apos;rsatmalar
+        uchun README faylini ko&apos;ring.
       </p>
     </main>
   );

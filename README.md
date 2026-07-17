@@ -1,17 +1,17 @@
 # MRcipher
 
-A universal, API-first Encryption-as-a-Service (EaaS) platform built with Next.js (App Router), Firebase Firestore, and Node.js `crypto` for AES-256-GCM encryption.
+Next.js (App Router), Firebase Firestore va Node.js `crypto` yordamida AES-256-GCM shifrlash orqali qurilgan universal, API-first Encryption-as-a-Service (EaaS) platformasi.
 
-## Features
+## Xususiyatlar
 
-- **Generic payloads** — Encrypt any JSON-serializable value; no fixed schema required.
-- **API-key authentication** — Keys are SHA-256 hashed in Firestore; raw keys are never stored.
-- **Per-origin access control** — Each API key has an `allowed_domains` list.
-- **AES-256-GCM** — Industry-standard authenticated encryption with a random IV per operation.
-- **Modular architecture** — Encryption logic is isolated from HTTP handlers for easy testing.
-- **Usage logging** — Best-effort Firestore logs for quota and audit trails.
+- **Generic payloadlar** — Har qanday JSON-serializable qiymatni shifrlash; ma'lumot tuzilmasi farqi yo'q.
+- **API kalit bilan autentifikatsiya** — Kalitlar Firestore'ga SHA-256 hash shaklida saqlanadi; asl kalit hech qachon saqlanmaydi.
+- **Domenboshqaruv** — Har bir API kalit o'zining `allowed_domains` ro'yxatiga ega.
+- **AES-256-GCM** — Har bir operatsiya uchun yangi tasodifiy IV bilan sanoat standartidagi autentifikatsiyali shifrlash.
+- **Modul arxitektura** — Shifrlash mantig'i HTTP handlerlaridan ajratilgan, alohida test qilish oson.
+- **Foydalanish loglari** — Kvota va audit izlari uchun eng yaxshi imkoniyatlarda Firestore loglari.
 
-## Project Structure
+## Loyiha tuzilishi
 
 ```
 src/
@@ -22,64 +22,64 @@ src/
 │   ├── layout.tsx
 │   └── page.tsx
 ├── lib/
-│   ├── config.ts              # Environment variables and constants
-│   ├── firebase.ts            # Firebase Admin SDK initialization
+│   ├── config.ts              # Muhit o'zgaruvchilari va konstantalar
+│   ├── firebase.ts            # Firebase Admin SDK ishga tushirish
 │   ├── crypto/
-│   │   └── encryption.ts      # AES-256-GCM engine
+│   │   └── encryption.ts      # AES-256-GCM dvigatel
 │   ├── firestore/
-│   │   ├── apiKeys.ts         # API-key validation and allowed-origin checks
-│   │   └── logs.ts            # Usage logging
+│   │   ├── apiKeys.ts         # API kalitini tekshirish va domen ruxsatini tekshirish
+│   │   └── logs.ts            # Foydalanish loglari
 │   ├── middleware/
-│   │   ├── apiKeyAuth.ts      # Request authentication logic
-│   │   └── cors.ts            # Allowed-origin response helpers
+│   │   ├── apiKeyAuth.ts      # So'rov autentifikatsiyasi mantig'i
+│   │   └── cors.ts            # Ruxsat etilgan domen javob yordamchilari
 │   ├── types/
-│   │   └── index.ts           # Shared TypeScript interfaces
+│   │   └── index.ts           # Shared TypeScript interfeyslari
 │   └── utils/
 │       ├── errors.ts          # ApiError + type guard
-│       └── response.ts          # Standard JSON response helpers
-└── middleware.ts              # Next.js global middleware entry
+│       └── response.ts        # Standart JSON javob yordamchilari
+└── middleware.ts              # Next.js global middleware kirish nuqtasi
 ```
 
-## Setup
+## O'rnatish
 
-1. **Install dependencies**
+1. **Bog'liqliklarni o'rnatish**
 
    ```bash
    npm install
    ```
 
-2. **Create a Firebase project and generate a service account key**
+2. **Firebase loyihasi yaratish va service account kalitini yaratish**
 
-   - In the Firebase console, go to **Project Settings > Service Accounts**.
-   - Click **Generate new private key** and download the JSON file.
+   - Firebase console'da **Project Settings > Service Accounts** bo'limiga kiring.
+   - **Generate new private key** tugmasini bosing va JSON faylni yuklab oling.
 
-3. **Configure environment variables**
+3. **Muhit o'zgaruvchilarini sozlash**
 
-   Copy `.env.example` to `.env.local` and fill in the values:
+   `.env.example` faylini `.env.local` ga nusxa oling va qiymatlarni to'ldiring:
 
    ```bash
    cp .env.example .env.local
    ```
 
-   | Variable | Description |
+   | O'zgaruvchi | Tavsif |
    | --- | --- |
-   | `FIREBASE_SERVICE_ACCOUNT_JSON` | Full JSON string of the service account key. |
-   | `ENCRYPTION_MASTER_KEY` | 64-character hex string (32 bytes). Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. |
-   | `ALLOWED_ORIGINS` | Optional comma-separated global origins for preflight/docs. |
+   | `FIREBASE_SERVICE_ACCOUNT_JSON` | Service account kalitining to'liq JSON matni. |
+   | `ENCRYPTION_MASTER_KEY` | 64 ta belgidan iborat hex satr (32 bayt). `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` bilan yarating. |
+   | `ALLOWED_ORIGINS` | Ixtiyoriy, preflight/health check uchun global domenlar ro'yxati. |
 
-   If you prefer not to paste the full JSON, you can use the individual `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` variables instead.
+   Agar to'liq JSON ni joylamoqchi bo'lmasangiz, alohida `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL` va `FIREBASE_PRIVATE_KEY` o'zgaruvchilaridan foydalanishingiz mumkin.
 
-4. **Run the development server**
+4. **Rivojlanish serverini ishga tushirish**
 
    ```bash
    npm run dev
    ```
 
-## Firestore Schema
+## Firestore sxemasi
 
-### `api_keys` collection
+### `api_keys` kolleksiyasi
 
-Each document represents an API key. Store only the SHA-256 hash; the raw key is shown once when created.
+Har bir hujjat bitta API kalitini ifodalaydi. Faqat SHA-256 hash saqlanadi; asl kalit faqat bir marta ko'rsatiladi.
 
 ```json
 {
@@ -92,9 +92,9 @@ Each document represents an API key. Store only the SHA-256 hash; the raw key is
 }
 ```
 
-### `logs` collection
+### `logs` kolleksiyasi
 
-Best-effort usage logs for audit and quota tracking.
+Audit va kvota kuzatuvi uchun eng yaxshi imkoniyatlarda loglar.
 
 ```json
 {
@@ -110,9 +110,9 @@ Best-effort usage logs for audit and quota tracking.
 }
 ```
 
-## API Usage
+## API'dan foydalanish
 
-### Encrypt
+### Shifrlash
 
 ```bash
 curl -X POST https://mrcipher.vercel.app/api/v1/encrypt \
@@ -122,7 +122,7 @@ curl -X POST https://mrcipher.vercel.app/api/v1/encrypt \
   -d '{"content":{"email":"user@example.com","ssn":"123-45-6789"}}'
 ```
 
-**Response**
+**Javob**
 
 ```json
 {
@@ -140,7 +140,7 @@ curl -X POST https://mrcipher.vercel.app/api/v1/encrypt \
 }
 ```
 
-### Decrypt
+### Shifrdan ochish
 
 ```bash
 curl -X POST https://mrcipher.vercel.app/api/v1/decrypt \
@@ -150,7 +150,7 @@ curl -X POST https://mrcipher.vercel.app/api/v1/decrypt \
   -d '{"content":{"ciphertext":"...","iv":"...","tag":"...","version":"v1"}}'
 ```
 
-**Response**
+**Javob**
 
 ```json
 {
@@ -166,9 +166,9 @@ curl -X POST https://mrcipher.vercel.app/api/v1/decrypt \
 }
 ```
 
-## Creating API Keys
+## API kalitlarini yaratish
 
-Use the Firebase console, the Firestore REST API, or a small Node.js script to add documents to the `api_keys` collection:
+Firebase console, Firestore REST API yoki kichik Node.js skript yordamida `api_keys` kolleksiyasiga hujjatlar qo'shing:
 
 ```javascript
 const crypto = require('crypto');
@@ -176,7 +176,7 @@ const crypto = require('crypto');
 const rawKey = `mr_${crypto.randomBytes(32).toString('base64url')}`;
 const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
 
-// Save to Firestore:
+// Firestore'ga saqlash:
 // {
 //   user_id: 'user_123',
 //   key_hash: keyHash,
@@ -184,26 +184,26 @@ const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
 //   is_active: true
 // }
 
-console.log('Raw key (show once):', rawKey);
+console.log('Asl kalit (faqat bir marta ko\'rsatiladi):', rawKey);
 ```
 
-## Security Notes
+## Xavfsizlik eslatmalari
 
-- **Never** commit `.env.local` or Firebase service account files to version control.
-- The raw `ENCRYPTION_MASTER_KEY` and raw API keys exist only as environment variables / client headers.
-- All plain text and keys are excluded from API responses and server logs.
-- Allowed origins are enforced per API key.
-- Input size is limited to 1 MB via `next.config.js`.
-- Decryption failures return a generic error; the exact failure reason is logged server-side only.
+- `.env.local` va Firebase service account fayllarini **hech qachon** version control'ga qo'shmang.
+- Asl `ENCRYPTION_MASTER_KEY` va asl API kalitlar faqat muhit o'zgaruvchilari / client headerlarida mavjud.
+- Barcha oddiy matn va kalitlar API javoblaridan va server loglaridan olib tashlangan.
+- Ruxsat etilgan domenlar har bir API kalit bo'yicha majburiy qilinadi.
+- Kiritish hajmi `next.config.js` orqali 1 MB bilan cheklangan.
+- Shifrdan ochish muvaffaqiyatsizligi bo'lganda umumiy xato qaytariladi; aniq sabab faqat server tomonda loglanadi.
 
-## Scripts
+## Skriptlar
 
-- `npm run dev` — Start the development server.
-- `npm run build` — Build for production.
-- `npm run start` — Start the production server.
-- `npm run lint` — Run ESLint.
-- `npm run typecheck` — Run TypeScript without emitting files.
+- `npm run dev` — Rivojlanish serverini ishga tushirish.
+- `npm run build` — Production uchun build.
+- `npm run start` — Production serverini ishga tushirish.
+- `npm run lint` — ESLint ni ishga tushirish.
+- `npm run typecheck` — TypeScript fayllarni tekshirish, hech narsa chiqarmasdan.
 
-## License
+## Litsenziya
 
 MIT
