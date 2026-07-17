@@ -7,13 +7,21 @@ import { createHash, randomBytes } from 'crypto';
 
 const MASTER_KEY = process.env.ENCRYPTION_MASTER_KEY ?? '';
 
-if (!/^[0-9a-fA-F]{64}$/.test(MASTER_KEY)) {
-  throw new Error(
-    'ENCRYPTION_MASTER_KEY must be a 64-character hexadecimal string representing 32 bytes.',
-  );
+/**
+ * Lazily validate and return the master encryption key.
+ *
+ * We avoid validating at module load so that Next.js can build static pages
+ * without requiring environment variables at build time. Runtime endpoints
+ * call this function when they actually need the key.
+ */
+export function getMasterKey(): Buffer {
+  if (!/^[0-9a-fA-F]{64}$/.test(MASTER_KEY)) {
+    throw new Error(
+      'ENCRYPTION_MASTER_KEY must be a 64-character hexadecimal string representing 32 bytes.',
+    );
+  }
+  return Buffer.from(MASTER_KEY, 'hex');
 }
-
-export const ENCRYPTION_MASTER_KEY = Buffer.from(MASTER_KEY, 'hex');
 
 export const FIREBASE_SERVICE_ACCOUNT_JSON =
   process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
@@ -35,7 +43,7 @@ export const AES_KEY_SIZE = 32;
  */
 export function deriveUserKey(userId: string): Buffer {
   return createHash('sha256')
-    .update(Buffer.concat([ENCRYPTION_MASTER_KEY, Buffer.from(userId)]))
+    .update(Buffer.concat([getMasterKey(), Buffer.from(userId)]))
     .digest();
 }
 

@@ -61,6 +61,15 @@ export async function POST(req: NextRequest) {
     const serialized = JSON.stringify(parsed.data.content);
     const bytesIn = Buffer.byteLength(serialized, 'utf8');
 
+    // Validate runtime configuration without exposing secret values.
+    if (!process.env.ENCRYPTION_MASTER_KEY) {
+      throw new ApiError(
+        'Server configuration is incomplete',
+        500,
+        'CONFIGURATION_ERROR',
+      );
+    }
+
     // Derive the encryption key from the API-key owner. The optional context
     // does not change the key in this version, but it can be logged or used
     // for future key-derivation schemes.
