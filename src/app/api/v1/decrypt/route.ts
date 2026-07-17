@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { GLOBAL_ALLOWED_ORIGINS } from '@/lib/env';
 import { decrypt } from '@/lib/crypto/encryption';
-import { authenticateRequest } from '@/lib/middleware/apiKeyAuth';
+import { authenticateRequest } from '@/lib/middleware/firebaseAuth';
 import { applyCorsHeaders, getOriginHeader } from '@/lib/middleware/cors';
 import { logUsage } from '@/lib/firestore/logs';
 import { ApiError } from '@/lib/utils/errors';
@@ -19,13 +19,12 @@ import {
  * JSON-serializable value.
  *
  * Headers:
- *   x-api-key  (required)
- *   origin     (required for cross-origin browser requests)
+ *   Authorization: Bearer <firebase-id-token>  (required)
+ *   origin                                      (required for cross-origin browser requests)
  *
  * Body:
  *   {
- *     "content": { ciphertext, iv, tag, version },
- *     "user_context": "optional public label"
+ *     "content": { ciphertext, iv, tag, version }
  *   }
  */
 
@@ -38,7 +37,6 @@ const encryptedPayloadSchema = z.object({
 
 const decryptRequestSchema = z.object({
   content: encryptedPayloadSchema,
-  user_context: z.string().max(128).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -56,10 +54,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { apiKeyDoc } = await authenticateRequest(req);
-    const allowedOrigin = origin ?? apiKeyDoc.allowed_domains[0] ?? '*';
+    const { uid, email } = await authenticateRequest(req);
+    const allowedOrigin = origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*';
 
-    const serialized = decrypt(parsed.data.content, apiKeyDoc.user_id);
+    const serialized = decrypt(parsed.data.content, uid);
     const bytesIn = Buffer.byteLength(
       JSON.stringify(parsed.data.content),
       'utf8',
@@ -78,8 +76,8 @@ export async function POST(req: NextRequest) {
     }
 
     logUsage({
-      api_key_id: apiKeyDoc.id,
-      user_id: apiKeyDoc.user_id,
+      uid,
+      email,
       endpoint: 'decrypt',
       status: 'success',
       bytes_in: bytesIn,

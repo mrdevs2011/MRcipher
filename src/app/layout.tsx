@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { AuthProvider } from '@/lib/auth/AuthContext';
 
 export const metadata: Metadata = {
   title: 'MRcipher - Encryption-as-a-Service',
@@ -12,9 +13,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="uz">
       <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif' }}>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

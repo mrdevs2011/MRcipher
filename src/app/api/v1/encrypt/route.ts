@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { GLOBAL_ALLOWED_ORIGINS } from '@/lib/env';
 import { encrypt } from '@/lib/crypto/encryption';
-import { authenticateRequest } from '@/lib/middleware/apiKeyAuth';
+import { authenticateRequest } from '@/lib/middleware/firebaseAuth';
 import { applyCorsHeaders, getOriginHeader } from '@/lib/middleware/cors';
 import { logUsage } from '@/lib/firestore/logs';
 import { ApiError } from '@/lib/utils/errors';
@@ -18,13 +18,12 @@ import {
  * Encrypts any JSON-serializable payload using AES-256-GCM.
  *
  * Headers:
- *   x-api-key  (required)
- *   origin     (required for cross-origin browser requests)
+ *   Authorization: Bearer <firebase-id-token>  (required)
+ *   origin                                      (required for cross-origin browser requests)
  *
  * Body:
  *   {
- *     "content": <any JSON value>,
- *     "user_context": "optional public label"
+ *     "content": <any JSON value>
  *   }
  */
 
@@ -37,7 +36,6 @@ const encryptRequestSchema = z.object({
       return false;
     }
   }, 'content must be JSON-serializable'),
-  user_context: z.string().max(128).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -55,8 +53,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { apiKeyDoc } = await authenticateRequest(req);
-    const allowedOrigin = origin ?? apiKeyDoc.allowed_domains[0] ?? '*';
+    const { uid, email } = await authenticateRequest(req);
+    const allowedOrigin = origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*';
 
     const serialized = JSON.stringify(parsed.data.content);
     const bytesIn = Buffer.byteLength(serialized, 'utf8');
@@ -70,10 +68,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Derive the encryption key from the API-key owner. The optional context
-    // does not change the key in this version, but it can be logged or used
-    // for future key-derivation schemes.
-    const encrypted = encrypt(serialized, apiKeyDoc.user_id);
+    // Derive the encryption key from the Firebase Auth uid.
+    const encrypted = encrypt(serialized, uid);
 
     const bytesOut = Buffer.byteLength(
       JSON.stringify(encrypted),
@@ -82,8 +78,8 @@ export async function POST(req: NextRequest) {
 
     // Fire-and-forget usage log.
     logUsage({
-      api_key_id: apiKeyDoc.id,
-      user_id: apiKeyDoc.user_id,
+      uid,
+      email,
       endpoint: 'encrypt',
       status: 'success',
       bytes_in: bytesIn,
