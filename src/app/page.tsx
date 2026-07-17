@@ -47,7 +47,7 @@ export default function HomePage() {
           overflowX: 'auto',
         }}
       >
-        {`curl -X POST https://your-domain.com/api/v1/encrypt \\
+        {`curl -X POST https://mrcipher.vercel.app/api/v1/encrypt \\
   -H "content-type: application/json" \\
   -H "x-api-key: mr_xxxxxxxx" \\
   -H "origin: https://app.example.com" \\

@@ -115,7 +115,7 @@ Best-effort usage logs for audit and quota tracking.
 ### Encrypt
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/encrypt \
+curl -X POST https://mrcipher.vercel.app/api/v1/encrypt \
   -H "content-type: application/json" \
   -H "x-api-key: mr_xxxxxxxx" \
   -H "origin: https://app.example.com" \
@@ -143,7 +143,7 @@ curl -X POST http://localhost:3000/api/v1/encrypt \
 ### Decrypt
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/decrypt \
+curl -X POST https://mrcipher.vercel.app/api/v1/decrypt \
   -H "content-type: application/json" \
   -H "x-api-key: mr_xxxxxxxx" \
   -H "origin: https://app.example.com" \
