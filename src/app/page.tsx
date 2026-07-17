@@ -51,7 +51,24 @@ export default function HomePage() {
         lineHeight: 1.6,
       }}
     >
-      <h1>MRcipher</h1>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+        <svg width="48" height="48" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="100" cy="100" r="90" fill="#0f172a" stroke="#38bdf8" strokeWidth="6" />
+          <text
+            x="50%"
+            y="58%"
+            fontFamily="monospace"
+            fontWeight="bold"
+            fontSize="75"
+            fill="#ffffff"
+            textAnchor="middle"
+            dominantBaseline="middle"
+          >
+            ***
+          </text>
+        </svg>
+        <h1 style={{ margin: 0 }}>MRcipher</h1>
+      </div>
       <p>
         Universal, API-first Encryption-as-a-Service. Quyidagi endpointlarga har
         qanday JSON-serializable malumot yuboring va AES-256-GCM shifrlangan

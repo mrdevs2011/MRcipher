@@ -1,0 +1,7 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Doira fon -->
+  <circle cx="100" cy="100" r="90" fill="#0f172a" stroke="#38bdf8" stroke-width="6"/>
+
+  <!-- Kichraytirilgan 3 ta yulduzcha -->
+  <text x="50%" y="58%" font-family="monospace" font-weight="bold" font-size="75" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">***</text>
+</svg>
