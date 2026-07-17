@@ -1,12 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
-/**
- * Public Firebase client configuration.
- *
- * These values are safe to expose in the browser. They identify the Firebase
- * project but do not grant admin access.
- */
 function getFirebaseConfig() {
   return {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -21,21 +15,30 @@ function getFirebaseConfig() {
 
 let app: FirebaseApp | undefined;
 
-/**
- * Lazily initialize the Firebase client app.
- *
- * This avoids crashing during Next.js static generation when the public
- * environment variables are not yet available.
- */
 export function getFirebaseApp(): FirebaseApp {
-  if (app) return app;
-
-  if (getApps().length > 0) {
-    app = getApp();
+  // Faqat brauzerda ishga tushirish. Next.js static prerender vaqtida
+  // server tomonda initialize bo'lib, noto'g'ri API key bilan build xatosi
+  // berishini oldini olamiz.
+  if (typeof window === 'undefined') {
+    if (!app) {
+      app = initializeApp({
+        apiKey: 'server-dummy-key',
+        projectId: 'server-dummy',
+      });
+    }
     return app;
   }
 
-  app = initializeApp(getFirebaseConfig());
+  if (getApps().length > 0) return getApp();
+
+  const config = getFirebaseConfig();
+  if (!config.apiKey) {
+    throw new Error(
+      'NEXT_PUBLIC_FIREBASE_API_KEY mavjud emas. Firebase web konfiguratsiyasini .env.local yoki Vercel environment variables ga qo\'shing.',
+    );
+  }
+
+  app = initializeApp(config);
   return app;
 }
 
