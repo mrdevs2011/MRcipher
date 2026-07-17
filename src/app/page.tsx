@@ -10,35 +10,36 @@ export default function HomePage() {
     >
       <h1>MRcipher</h1>
       <p>
-        Universal, API-first Encryption-as-a-Service. Send any JSON-serializable
-        payload to the endpoints below and receive an AES-256-GCM encrypted
-        container in return.
+        Universal, API-first Encryption-as-a-Service. Quyidagi endpointlarga har
+        qanday JSON-serializable ma'lumot yuboring va AES-256-GCM shifrlangan
+        qutini qaytarib oling.
       </p>
 
-      <h2>API Endpoints</h2>
+      <h2>API Endpointlar</h2>
       <ul>
         <li>
-          <code>POST /api/v1/encrypt</code> — Encrypt a JSON value.
+          <code>POST /api/v1/encrypt</code> — JSON qiymatni shifrlash.
         </li>
         <li>
-          <code>POST /api/v1/decrypt</code> — Decrypt an encrypted container.
+          <code>POST /api/v1/decrypt</code> — Shifrlangan qutini ochish.
         </li>
       </ul>
 
-      <h2>Headers</h2>
+      <h2>Headerlar</h2>
       <ul>
         <li>
-          <code>x-api-key</code> — Your API key (required).
+          <code>x-api-key</code> — Sizning API kalitingiz (majburiy).
         </li>
         <li>
-          <code>origin</code> — Must match an allowed domain for your key.
+          <code>origin</code> — Kalitingiz uchun ruxsat etilgan domen bilan
+          mos kelishi kerak.
         </li>
         <li>
           <code>content-type: application/json</code>
         </li>
       </ul>
 
-      <h2>Example</h2>
+      <h2>Misol</h2>
       <pre
         style={{
           background: '#f4f4f5',
@@ -55,8 +56,8 @@ export default function HomePage() {
       </pre>
 
       <p style={{ marginTop: '2rem', color: '#6b7280' }}>
-        See the README for Firestore setup, key provisioning, and security
-        guidance.
+        Firestore sozlamalari, kalit yaratish va xavfsizlik bo'yicha ko'rsatmalar
+        uchun README faylini ko'ring.
       </p>
     </main>
   );
