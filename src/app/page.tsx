@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { Logo } from '@/components/Logo';
 
 export default function HomePage() {
   const { user, loading, idToken, signInWithGoogle, logout, refreshIdToken } = useAuth();
@@ -29,188 +30,209 @@ export default function HomePage() {
     }
 
     const url = `${domain.replace(/\/$/, '')}/api/v1/encrypt`;
-    const command = `curl -X POST ${url} \\\n  -H "content-type: application/json" \\\n  -H "Authorization: Bearer ${freshToken}" \\\n  -H "origin: ${typeof window !== 'undefined' ? window.location.origin : domain}" \\\n  -d '{"content":${payload}}'`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : domain;
+    const command = `curl -X POST ${url} \\\n  -H "content-type: application/json" \\\n  -H "Authorization: Bearer ${freshToken}" \\\n  -H "origin: ${origin}" \\\n  -d '{"content":${payload}}'`;
 
     setCurl(command);
   }
 
   if (loading) {
     return (
-      <main style={{ maxWidth: '720px', margin: '0 auto', padding: '2rem 1rem', textAlign: 'center' }}>
+      <div className="empty-state">
+        <Logo size={64} />
         <p>Yuklanmoqda...</p>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main
-      style={{
-        maxWidth: '720px',
-        margin: '0 auto',
-        padding: '2rem 1rem',
-        lineHeight: 1.6,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-        <svg width="48" height="48" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="100" cy="100" r="90" fill="#0f172a" stroke="#38bdf8" strokeWidth="6" />
-          <text
-            x="50%"
-            y="58%"
-            fontFamily="monospace"
-            fontWeight="bold"
-            fontSize="75"
-            fill="#ffffff"
-            textAnchor="middle"
-            dominantBaseline="middle"
-          >
-            ***
-          </text>
-        </svg>
-        <h1 style={{ margin: 0 }}>MRcipher</h1>
-      </div>
-      <p>
-        Universal, API-first Encryption-as-a-Service. Quyidagi endpointlarga har
-        qanday JSON-serializable malumot yuboring va AES-256-GCM shifrlangan
-        qutini qaytarib oling.
-      </p>
-
-      {!user ? (
-        <div style={{ marginTop: '1.5rem' }}>
-          <p>Ishni boshlash uchun Google hisobingiz bilan kiring.</p>
-          <button
-            onClick={signInWithGoogle}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: '#18181b',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '0.375rem',
-              cursor: 'pointer',
-              fontSize: '1rem',
-            }}
-          >
-            Google bilan kirish
-          </button>
-        </div>
-      ) : (
-        <>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: '#f4f4f5',
-              padding: '1rem',
-              borderRadius: '0.5rem',
-              marginTop: '1.5rem',
-            }}
-          >
-            <div>
-              <strong>Kirish muvaffaqiyatli</strong>
-              <p style={{ margin: 0, color: '#6b7280' }}>{user.email}</p>
+    <div className="container">
+      <nav className="navbar">
+        <div className="navbar-inner container">
+          <a href="/" className="brand">
+            <Logo size={36} />
+            MRcipher
+          </a>
+          {user ? (
+            <div className="nav-user">
+              <span>
+                <strong>{user.displayName || user.email}</strong> sifatida kiringansiz
+              </span>
+              <button className="btn btn-secondary" onClick={logout}>
+                Chiqish
+              </button>
             </div>
-            <button
-              onClick={logout}
-              style={{
-                padding: '0.5rem 1rem',
-                background: '#fff',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                cursor: 'pointer',
-              }}
-            >
-              Chiqish
+          ) : (
+            <button className="btn btn-primary" onClick={signInWithGoogle}>
+              Kirish
             </button>
+          )}
+        </div>
+      </nav>
+
+      <main>
+        <section className="hero">
+          <div className="badge">
+            <span className="badge-dot" />
+            AES-256-GCM shifrlash
+          </div>
+          <h1>
+            Malumotlaringizni <span>API orqali</span> shifrlang
+          </h1>
+          <p>
+            MRcipher — universal, API-first Encryption-as-a-Service. JSON
+            malumotlaringizni har qanday dasturlash tilidan yuboring, biz uni
+            xavfsiz shifrlab qaytarib beramiz.
+          </p>
+          {!user && (
+            <button className="btn btn-primary" onClick={signInWithGoogle}>
+              Google bilan boshlash
+            </button>
+          )}
+        </section>
+
+        <section className="grid-3">
+          <div className="card">
+            <div className="feature-icon">🔐</div>
+            <h3 className="card-title">AES-256-GCM</h3>
+            <p className="card-desc">
+              Zamonaviy autentifikatsiyalangan shifrlash. Har bir foydalanuvchi
+              uchun alohida kalit.
+            </p>
+          </div>
+          <div className="card">
+            <div className="feature-icon">⚡</div>
+            <h3 className="card-title">API-first</h3>
+            <p className="card-desc">
+              Faqat 2 endpoint: <code>/encrypt</code> va <code>/decrypt</code>.
+              Curl, Postman yoki har qanday HTTP mijoz bilan ishlaydi.
+            </p>
+          </div>
+          <div className="card">
+            <div className="feature-icon">🛡️</div>
+            <h3 className="card-title">Google Sign-In</h3>
+            <p className="card-desc">
+              API kalitlari yoq. Faqat Google hisobingiz bilan kiring va har bir
+              sorovga ID token yuboring.
+            </p>
+          </div>
+        </section>
+
+        <section className="grid-2">
+          <div className="card">
+            <h3 className="card-title">Endpointlar</h3>
+            <p className="card-desc">
+              Quyidagi endpointlarga <code>Authorization: Bearer &lt;idToken&gt;</code>{' '}
+              sarlavhasi bilan sorov yuboring.
+            </p>
+            <ul className="text-muted" style={{ lineHeight: 1.8 }}>
+              <li>
+                <code>POST /api/v1/encrypt</code> — JSON qiymatni shifrlash
+              </li>
+              <li>
+                <code>POST /api/v1/decrypt</code> — shifrlangan qutini ochish
+              </li>
+            </ul>
           </div>
 
-          <h2 style={{ marginTop: '2rem' }}>API Endpointlar</h2>
-          <ul>
-            <li>
-              <code>POST /api/v1/encrypt</code> — JSON qiymatni shifrlash.
-            </li>
-            <li>
-              <code>POST /api/v1/decrypt</code> — Shifrlangan qutini ochish.
-            </li>
-          </ul>
-
-          <h2>Sorov yaratish</h2>
-          <div
-            style={{
-              display: 'grid',
-              gap: '1rem',
-              background: '#f4f4f5',
-              padding: '1rem',
-              borderRadius: '0.5rem',
-            }}
-          >
-            <label>
-              <strong>Saytingiz domeni</strong>
-              <input
-                type="text"
-                value={domain}
-                onChange={(e) => setDomain(e.target.value)}
-                placeholder="https://mrcipher.vercel.app"
-                style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-              />
-            </label>
-
-            <label>
-              <strong>Shifrlamoqchi malumot (JSON shaklida)</strong>
-              <textarea
-                value={payload}
-                onChange={(e) => setPayload(e.target.value)}
-                rows={4}
-                placeholder='{"email":"user@example.com","ssn":"123-45-6789"}'
-                style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-              />
-            </label>
-
-            <button
-              onClick={generateCurl}
-              style={{
-                padding: '0.75rem 1rem',
-                background: '#18181b',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '0.375rem',
-                cursor: 'pointer',
-                fontSize: '1rem',
-              }}
-            >
-              Next
-            </button>
+          <div className="card">
+            <h3 className="card-title">Qo&apos;llab-quvvatlanadi</h3>
+            <p className="card-desc">
+              Server va brauzer, har qanday til va platforma:
+            </p>
+            <ul className="text-muted" style={{ lineHeight: 1.8 }}>
+              <li>cURL, Python requests, Node.js fetch</li>
+              <li>Java, Go, PHP, Rust HTTP mijozlari</li>
+              <li>Next.js, React, Vue, mobil ilovalar</li>
+            </ul>
           </div>
+        </section>
 
-          {curl && (
-            <div style={{ marginTop: '1.5rem' }}>
-              <h3>Tayyor curl buyruqi</h3>
-              <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-                Eslatma: ID token 1 soatdan keyin eskiradi, shuning uchun
-                har safar yangi curl yaratish shart.
+        <section className="generator">
+          {!user ? (
+            <div className="card empty-state">
+              <h2>Curl generator</h2>
+              <p>
+                Tayyor curl buyruqlarini yaratish uchun avval Google bilan
+                kiring.
               </p>
-              <pre
-                style={{
-                  background: '#18181b',
-                  color: '#f4f4f5',
-                  padding: '1rem',
-                  borderRadius: '0.5rem',
-                  overflowX: 'auto',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-all',
-                }}
-              >
-                {curl}
-              </pre>
+              <button className="btn btn-primary" onClick={signInWithGoogle}>
+                Google bilan kirish
+              </button>
+            </div>
+          ) : (
+            <div className="card">
+              <div className="auth-bar">
+                <p>
+                  <span className="email">{user.email}</span> sifatida test
+                  sorovi yaratish
+                </p>
+                <button
+                  className="btn btn-secondary"
+                  onClick={async () => {
+                    await refreshIdToken();
+                    setCurl('');
+                  }}
+                >
+                  Tokenni yangilash
+                </button>
+              </div>
+
+              <h3 className="card-title mb-1">Curl generator</h3>
+              <p className="card-desc">
+                Domen va shifrlamoqchi malumotingizni kiriting, biz tayyor curl
+                buyruqni yaratib beramiz.
+              </p>
+
+              <div className="generator-grid">
+                <label className="block">
+                  Saytingiz domeni
+                  <input
+                    type="text"
+                    className="input"
+                    value={domain}
+                    onChange={(e) => setDomain(e.target.value)}
+                    placeholder="https://mrcipher.vercel.app"
+                  />
+                </label>
+
+                <label className="block">
+                  Shifrlamoqchi malumot (JSON shaklida)
+                  <textarea
+                    className="textarea"
+                    value={payload}
+                    onChange={(e) => setPayload(e.target.value)}
+                    rows={4}
+                    placeholder='{"email":"user@example.com","ssn":"123-45-6789"}'
+                  />
+                </label>
+
+                <button className="btn btn-primary" onClick={generateCurl}>
+                  Next
+                </button>
+              </div>
+
+              {curl && (
+                <div className="mt-2">
+                  <h3 className="card-title">Tayyor curl buyruqi</h3>
+                  <p className="card-desc">
+                    ID token 1 soatdan keyin eskiradi, har safar yangi sorov
+                    yaratish shart.
+                  </p>
+                  <pre className="code-block">{curl}</pre>
+                </div>
+              )}
             </div>
           )}
-        </>
-      )}
+        </section>
+      </main>
 
-      <p style={{ marginTop: '2rem', color: '#6b7280' }}>
-        Firestore sozlamalari, kalit yaratish va xavfsizlik boyicha
-        korsatmalar uchun README faylini koring.
-      </p>
-    </main>
+      <footer className="footer">
+        <p>
+          © {new Date().getFullYear()} MRcipher.{' '}
+          <span className="text-primary">AES-256-GCM</span> bilan himoyalangan.
+        </p>
+      </footer>
+    </div>
   );
 }

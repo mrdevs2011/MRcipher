@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import './globals.css';
 import { AuthProvider } from '@/lib/auth/AuthContext';
 
 export const metadata: Metadata = {
@@ -14,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="uz">
-      <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif' }}>
+      <body>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
