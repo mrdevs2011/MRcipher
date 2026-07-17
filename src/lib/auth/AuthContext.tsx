@@ -13,7 +13,7 @@ import {
   signOut,
   User,
 } from 'firebase/auth';
-import { auth, googleProvider } from '../firebaseClient';
+import { getAuthInstance, googleProvider } from '../firebaseClient';
 
 interface AuthContextValue {
   user: User | null;
@@ -32,14 +32,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   async function refreshIdToken(): Promise<string | null> {
-    if (!auth.currentUser) return null;
-    const token = await auth.currentUser.getIdToken(true);
+    const currentUser = getAuthInstance().currentUser;
+    if (!currentUser) return null;
+    const token = await currentUser.getIdToken(true);
     setIdToken(token);
     return token;
   }
 
   async function signInWithGoogle(): Promise<void> {
-    const result = await signInWithPopup(auth, googleProvider);
+    const result = await signInWithPopup(getAuthInstance(), googleProvider);
     if (result.user) {
       const token = await result.user.getIdToken();
       setIdToken(token);
@@ -47,12 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout(): Promise<void> {
-    await signOut(auth);
+    await signOut(getAuthInstance());
     setIdToken(null);
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(getAuthInstance(), async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
         const token = await currentUser.getIdToken();
