@@ -49,7 +49,8 @@ export async function authenticateRequest(
   try {
     const decoded = await getAuth().verifyIdToken(idToken);
     return { uid: decoded.uid, email: decoded.email ?? undefined };
-  } catch {
+  } catch (error) {
+    console.error('verifyIdToken failed:', error);
     throw new ApiError(
       'Invalid or expired Firebase ID token',
       401,
