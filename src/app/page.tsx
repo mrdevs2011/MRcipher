@@ -486,11 +486,11 @@ export default function HomePage() {
             </p>
 
             {signInError && (
-              <div className="alert alert-error" style={{ maxWidth: 420, margin: '0 auto 1rem' }}>
+              <div className="alert alert-error alert-inline">
                 <span className="alert-icon"><ExclamationIcon size={20} /></span>
-                <div style={{ flex: 1 }}>
+                <div className="alert-body">
                   {signInError}
-                  <button className="btn btn-ghost btn-sm" onClick={clearSignInError} >
+                  <button className="btn btn-ghost btn-sm" onClick={clearSignInError}>
                     Yopish
                   </button>
                 </div>
@@ -628,8 +628,8 @@ export default function HomePage() {
               </div>
 
               <div className="translator-grid">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label className="block" >
+                <div className="translator-col">
+                  <label className="block">
                     {translatorMode === 'encrypt' ? 'Matn' : 'Cipher JSON'}
                   </label>
                   <textarea
@@ -650,7 +650,7 @@ export default function HomePage() {
                     className="btn btn-primary"
                     onClick={runTranslator}
                     disabled={translatorLoading || !translatorInput.trim()}
-                    style={{ minWidth: 120 }}
+                    className="btn-translator-run"
                   >
                     {translatorLoading
                       ? 'Yuklanmoqda...'
@@ -663,8 +663,8 @@ export default function HomePage() {
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label className="block" >
+                <div className="translator-col">
+                  <label className="block">
                     {translatorMode === 'encrypt' ? 'Cipher JSON' : 'Matn'}
                     <button
                       className='btn btn-ghost btn-sm btn-copy-inline'
@@ -940,7 +940,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="mt-1" style={{ textAlign: 'center' }}>
+              <div className="mt-1 text-center">
                 <a href="/doc" className="btn btn-secondary">
                   Dasturchi uchun qo‘llanma
                 </a>
