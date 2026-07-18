@@ -647,10 +647,9 @@ export default function HomePage() {
 
                 <div className="translator-actions">
                   <button
-                    className="btn btn-primary"
+                    className="btn btn-primary btn-translator-run"
                     onClick={runTranslator}
                     disabled={translatorLoading || !translatorInput.trim()}
-                    className="btn-translator-run"
                   >
                     {translatorLoading
                       ? 'Yuklanmoqda...'
