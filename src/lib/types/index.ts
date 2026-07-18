@@ -27,6 +27,12 @@ export interface DecryptRequestBody {
   content: EncryptedPayload;
 }
 
+/** Shape of the request body for POST /api/v1/keys */
+export interface CreateKeyRequestBody {
+  /** Human-readable name for the API key (e.g., "Production server"). */
+  name: string;
+}
+
 /** Authenticated user returned by Firebase ID token verification. */
 export interface AuthenticatedUser {
   uid: string;
@@ -35,17 +41,39 @@ export interface AuthenticatedUser {
 
 /**
  * Firestore document stored in the `users` collection.
- * The API key itself is never stored; only its SHA-256 hash and a prefix
- * for display purposes are kept.
  */
 export interface UserDoc {
   uid: string;
   email?: string;
   display_name?: string;
+  created_at: Timestamp | string;
+  last_seen_at?: Timestamp | string;
+}
+
+/**
+ * Firestore document stored in the `api_keys` collection.
+ * The raw API key is never stored; only its SHA-256 hash and a prefix
+ * for display purposes are kept.
+ */
+export interface ApiKeyDoc {
+  uid: string;
+  email?: string;
+  name: string;
   api_key_hash: string;
   api_key_prefix: string;
   created_at: Timestamp | string;
-  last_seen_at?: Timestamp | string;
+  last_used_at?: Timestamp | string;
+  revoked?: boolean;
+}
+
+/** Public view of an API key (returned when listing keys). */
+export interface ApiKeyPublicView {
+  id: string;
+  name: string;
+  prefix: string;
+  created_at: string;
+  last_used_at?: string;
+  revoked: boolean;
 }
 
 /** Input used when writing a usage log entry. */

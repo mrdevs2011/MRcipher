@@ -1,19 +1,53 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Logo } from '@/components/Logo';
+import { ApiKeyPublicView } from '@/lib/types';
 
 export default function HomePage() {
   const { user, loading, signInWithGoogle, logout, refreshIdToken } = useAuth();
-  const [apiKey, setApiKey] = useState('');
+  const [apiKeys, setApiKeys] = useState<ApiKeyPublicView[]>([]);
+  const [newKeyName, setNewKeyName] = useState('');
+  const [freshApiKey, setFreshApiKey] = useState('');
   const [apiKeyLoading, setApiKeyLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
-  async function fetchApiKey() {
+  const loadApiKeys = useCallback(async () => {
+    setError('');
+    try {
+      const freshToken = await refreshIdToken();
+      if (!freshToken) {
+        setError('ID token topilmadi, qayta kiring.');
+        return;
+      }
+
+      const res = await fetch('/api/v1/keys', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${freshToken}`,
+          origin: typeof window !== 'undefined' ? window.location.origin : '',
+        },
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error?.message || 'API key lar ro&apos;yxatini yuklashda xatolik');
+        return;
+      }
+
+      setApiKeys(json.data.keys ?? []);
+    } catch (err) {
+      setError('Tarmoq xatosi: API key lar ro&apos;yxati yuklanmadi');
+    }
+  }, [refreshIdToken]);
+
+  async function createApiKey() {
     setApiKeyLoading(true);
     setError('');
+    setFreshApiKey('');
 
     try {
       const freshToken = await refreshIdToken();
@@ -30,28 +64,70 @@ export default function HomePage() {
           Authorization: `Bearer ${freshToken}`,
           origin: typeof window !== 'undefined' ? window.location.origin : '',
         },
+        body: JSON.stringify({ name: newKeyName.trim() || 'Nomsiz kalit' }),
       });
 
       const json = await res.json();
       if (!res.ok || !json.success) {
-        setError(json.error?.message || 'API key olishda xatolik');
+        setError(json.error?.message || 'API key yaratishda xatolik');
         setApiKeyLoading(false);
         return;
       }
 
-      setApiKey(json.data.apiKey);
+      setFreshApiKey(json.data.apiKey);
+      setNewKeyName('');
+      await loadApiKeys();
     } catch (err) {
-      setError('Tarmoq xatosi: API key olinmadi');
+      setError('Tarmoq xatosi: API key yaratilmadi');
     } finally {
       setApiKeyLoading(false);
     }
   }
 
   function copyApiKey() {
-    if (!apiKey) return;
-    navigator.clipboard.writeText(apiKey).then(() => {
+    if (!freshApiKey) return;
+    navigator.clipboard.writeText(freshApiKey).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  const integrationCode = freshApiKey
+    ? `const SERVER_URL = "${typeof window !== 'undefined' ? window.location.origin : 'https://mrcipher.vercel.app'}";
+const API_KEY = "${freshApiKey}";
+
+async function encrypt(content) {
+  const res = await fetch(\`\${SERVER_URL}/api/v1/encrypt\`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      Authorization: \`Bearer \${API_KEY}\`,
+      origin: SERVER_URL,
+    },
+    body: JSON.stringify({ content }),
+  });
+  return res.json();
+}
+
+async function decrypt(encrypted) {
+  const res = await fetch(\`\${SERVER_URL}/api/v1/decrypt\`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      Authorization: \`Bearer \${API_KEY}\`,
+      origin: SERVER_URL,
+    },
+    body: JSON.stringify({ content: encrypted }),
+  });
+  return res.json();
+}`
+    : '';
+
+  function copyIntegrationCode() {
+    if (!integrationCode) return;
+    navigator.clipboard.writeText(integrationCode).then(() => {
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
     });
   }
 
@@ -170,10 +246,10 @@ export default function HomePage() {
         <section style={{ margin: '2rem 0' }}>
           {!user ? (
             <div className="card empty-state">
-              <h2>API key olish</h2>
+              <h2>API key larni boshqarish</h2>
               <p>
-                Yangi API key yaratish uchun avval Google hisobingiz bilan
-                kiring.
+                Yangi API key yaratish va mavjud key larni ko&apos;rish uchun
+                avval Google hisobingiz bilan kiring.
               </p>
               <button className="btn btn-primary" onClick={signInWithGoogle}>
                 Google bilan kirish
@@ -187,30 +263,42 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <h3 className="card-title mb-1">API key</h3>
+              <h3 className="card-title mb-1">Yangi API key yaratish</h3>
               <p className="card-desc">
-                Google hisobingiz bilan kiringandan keyin yangi API key
-                yarating. Bu keyni dasturingizga qo&apos;shing va har bir so&apos;rovda
-                <code>Authorization: Bearer &lt;apiKey&gt;</code> sarlavhasida
-                yuboring.
+                Kalitga tushunarli nom bering. Asl key faqat bir marta
+                ko&apos;rsatiladi va keyin tiklab bo&apos;lmaydi.
               </p>
 
-              {!apiKey ? (
+              <div className="generator-grid" style={{ marginBottom: '1rem' }}>
+                <label className="block">
+                  API key nomi
+                  <input
+                    type="text"
+                    className="input"
+                    value={newKeyName}
+                    onChange={(e) => setNewKeyName(e.target.value)}
+                    placeholder="Masalan: Production server"
+                    maxLength={100}
+                  />
+                </label>
+
                 <button
                   className="btn btn-primary"
-                  onClick={fetchApiKey}
+                  onClick={createApiKey}
                   disabled={apiKeyLoading}
                 >
-                  {apiKeyLoading ? 'Yaratilmoqda...' : 'API key olish'}
+                  {apiKeyLoading ? 'Yaratilmoqda...' : 'API key yaratish'}
                 </button>
-              ) : (
+              </div>
+
+              {freshApiKey && (
                 <div
                   style={{
                     background: '#020617',
                     border: '1px solid var(--border)',
                     borderRadius: 'var(--radius)',
                     padding: '1rem',
-                    marginBottom: '1rem',
+                    marginBottom: '1.5rem',
                   }}
                 >
                   <p
@@ -220,7 +308,7 @@ export default function HomePage() {
                       color: 'var(--text-muted)',
                     }}
                   >
-                    Sizning API key ingiz (faqat bir marta ko&apos;rsatiladi):
+                    Yangi API key (faqat bir marta ko&apos;rsatiladi, nusxa oling):
                   </p>
                   <code
                     style={{
@@ -229,7 +317,7 @@ export default function HomePage() {
                       fontSize: '0.9rem',
                     }}
                   >
-                    {apiKey}
+                    {freshApiKey}
                   </code>
                   <button
                     onClick={copyApiKey}
@@ -244,12 +332,12 @@ export default function HomePage() {
                       fontSize: '0.875rem',
                     }}
                   >
-                    {copied ? 'Nusxa olindi!' : 'Nusxa olish'}
+                    {copied ? 'Nusxa olindi!' : 'API key ni nusxa olish'}
                   </button>
                 </div>
               )}
 
-              {apiKey && (
+              {integrationCode && (
                 <div className="mt-2">
                   <h3 className="card-title">Integratsiya namunasi</h3>
                   <p className="card-desc">
@@ -257,74 +345,12 @@ export default function HomePage() {
                     <code>API_KEY</code> o&apos;rniga yuqoridagi API key ni
                     yozing.
                   </p>
-                  <pre className="code-block">
-                    {`const SERVER_URL = "${typeof window !== 'undefined' ? window.location.origin : 'https://mrcipher.vercel.app'}";
-const API_KEY = "${apiKey}";
-
-async function encrypt(content) {
-  const res = await fetch(\`\${SERVER_URL}/api/v1/encrypt\`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: \`Bearer \${API_KEY}\`,
-      origin: SERVER_URL,
-    },
-    body: JSON.stringify({ content }),
-  });
-  return res.json();
-}
-
-async function decrypt(encrypted) {
-  const res = await fetch(\`\${SERVER_URL}/api/v1/decrypt\`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: \`Bearer \${API_KEY}\`,
-      origin: SERVER_URL,
-    },
-    body: JSON.stringify({ content: encrypted }),
-  });
-  return res.json();
-}`}
-                  </pre>
+                  <pre className="code-block">{integrationCode}</pre>
                   <button
                     className="btn btn-secondary"
-                    onClick={() => {
-                      const code = `const SERVER_URL = "${typeof window !== 'undefined' ? window.location.origin : 'https://mrcipher.vercel.app'}";
-const API_KEY = "${apiKey}";
-
-async function encrypt(content) {
-  const res = await fetch(\`\${SERVER_URL}/api/v1/encrypt\`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: \`Bearer \${API_KEY}\`,
-      origin: SERVER_URL,
-    },
-    body: JSON.stringify({ content }),
-  });
-  return res.json();
-}
-
-async function decrypt(encrypted) {
-  const res = await fetch(\`\${SERVER_URL}/api/v1/decrypt\`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: \`Bearer \${API_KEY}\`,
-      origin: SERVER_URL,
-    },
-    body: JSON.stringify({ content: encrypted }),
-  });
-  return res.json();
-}`;
-                      navigator.clipboard.writeText(code).then(() => {
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
-                      });
-                    }}
+                    onClick={copyIntegrationCode}
                   >
-                    {copied ? 'Nusxa olindi!' : 'Kodni nusxa olish'}
+                    {codeCopied ? 'Nusxa olindi!' : 'Kodni nusxa olish'}
                   </button>
                 </div>
               )}
@@ -333,6 +359,70 @@ async function decrypt(encrypted) {
                 <p style={{ color: 'var(--danger)', marginTop: '0.75rem' }}>
                   {error}
                 </p>
+              )}
+
+              <h3
+                className="card-title mb-1"
+                style={{ marginTop: '2rem' }}
+              >
+                Saqlangan API key lar
+              </h3>
+              <p className="card-desc">
+                Faqat oxirgi 4 ta belgi va nom ko&apos;rsatiladi. Asl keyni
+                tiklab bo&apos;lmaydi.
+              </p>
+
+              {apiKeys.length === 0 ? (
+                <p className="text-muted">Hali API key yaratilmagan.</p>
+              ) : (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {apiKeys.map((key) => (
+                    <li
+                      key={key.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.75rem 1rem',
+                        background: 'var(--bg-input)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius)',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      <div>
+                        <strong>{key.name}</strong>
+                        <div
+                          style={{
+                            fontSize: '0.875rem',
+                            color: 'var(--text-muted)',
+                            marginTop: '0.25rem',
+                          }}
+                        >
+                          Prefix: ····{key.prefix}
+                          {key.revoked && (
+                            <span
+                              style={{
+                                color: 'var(--danger)',
+                                marginLeft: '0.5rem',
+                              }}
+                            >
+                              (bekor qilingan)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '0.8rem',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        {new Date(key.created_at).toLocaleDateString('uz-UZ')}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           )}

@@ -29,7 +29,7 @@ function getBearerToken(req: NextRequest): string | null {
 }
 
 /**
- * Verify the API key against the users collection and return the
+ * Verify the API key against the api_keys collection and return the
  * authenticated user.
  *
  * @throws {ApiError} 401 if the key is missing or invalid.
@@ -47,9 +47,9 @@ export async function authenticateRequest(
     );
   }
 
-  const userDoc = await findUserByApiKey(apiKey);
+  const user = await findUserByApiKey(apiKey);
 
-  if (!userDoc) {
+  if (!user) {
     throw new ApiError(
       'Invalid or revoked API key',
       401,
@@ -57,5 +57,5 @@ export async function authenticateRequest(
     );
   }
 
-  return { uid: userDoc.uid, email: userDoc.email ?? undefined };
+  return { uid: user.uid, email: user.email ?? undefined };
 }

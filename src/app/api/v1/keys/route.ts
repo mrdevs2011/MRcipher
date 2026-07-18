@@ -1,7 +1,11 @@
 import { NextRequest } from 'next/server';
+import { z } from 'zod';
 import { getAuthInstance } from '@/lib/firebase';
-import { generateApiKey } from '@/lib/config';
-import { createOrUpdateUser } from '@/lib/firestore/users';
+import {
+  createOrUpdateUser,
+  createApiKey,
+  listApiKeysByUser,
+} from '@/lib/firestore/users';
 import { applyCorsHeaders, getOriginHeader } from '@/lib/middleware/cors';
 import { ApiError } from '@/lib/utils/errors';
 import {
@@ -12,6 +16,16 @@ import {
 import { GLOBAL_ALLOWED_ORIGINS } from '@/lib/env';
 
 /**
+ * GET /api/v1/keys
+ *
+ * Returns all API keys for the authenticated user.
+ * Raw API keys are never returned; only public metadata is shown.
+ *
+ * Headers:
+ *   Authorization: Bearer <firebase-id-token>  (required)
+ */
+
+/**
  * POST /api/v1/keys
  *
  * Creates a new API key for the authenticated Firebase user.
@@ -20,52 +34,55 @@ import { GLOBAL_ALLOWED_ORIGINS } from '@/lib/env';
  *   Authorization: Bearer <firebase-id-token>  (required)
  *   origin                                       (required for cross-origin browser requests)
  *
+ * Body:
+ *   {
+ *     "name": "Production server"
+ *   }
+ *
  * Response:
  *   {
  *     "success": true,
  *     "data": {
  *       "apiKey": "mr_...",
- *       "prefix": "..."
+ *       "key": { id, name, prefix, created_at, revoked }
  *     }
  *   }
- *
- * The raw API key is returned exactly once. Only its SHA-256 hash is stored.
  */
 
-export async function POST(req: NextRequest) {
-  const origin = getOriginHeader(req);
+const createKeySchema = z.object({
+  name: z
+    .string()
+    .min(1, 'API key nomi kiritilishi shart')
+    .max(100, 'API key nomi 100 ta belgidan oshmasligi kerak'),
+});
+
+async function verifyIdTokenFromHeader(
+  req: NextRequest,
+): Promise<{
+  uid: string;
+  email?: string;
+  name?: string;
+}> {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader) {
+    throw new ApiError(
+      'Missing Authorization header. Expected: Bearer <firebase-id-token>',
+      401,
+      'UNAUTHORIZED',
+    );
+  }
+
+  const [scheme, idToken] = authHeader.split(' ');
+  if (scheme?.toLowerCase() !== 'bearer' || !idToken) {
+    throw new ApiError(
+      'Invalid Authorization header format',
+      401,
+      'UNAUTHORIZED',
+    );
+  }
 
   try {
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      throw new ApiError(
-        'Missing Authorization header. Expected: Bearer <firebase-id-token>',
-        401,
-        'UNAUTHORIZED',
-      );
-    }
-
-    const [scheme, idToken] = authHeader.split(' ');
-    if (scheme?.toLowerCase() !== 'bearer' || !idToken) {
-      throw new ApiError(
-        'Invalid Authorization header format',
-        401,
-        'UNAUTHORIZED',
-      );
-    }
-
-    let decoded;
-    try {
-      decoded = await getAuthInstance().verifyIdToken(idToken);
-    } catch (err) {
-      console.error('[MRcipher] ID token verification failed:', err);
-      throw new ApiError(
-        'Invalid or expired Firebase ID token',
-        401,
-        'UNAUTHORIZED',
-      );
-    }
-
+    const decoded = await getAuthInstance().verifyIdToken(idToken);
     if (!decoded.uid) {
       throw new ApiError(
         'Token does not contain a user identifier',
@@ -73,28 +90,93 @@ export async function POST(req: NextRequest) {
         'UNAUTHORIZED',
       );
     }
-
-    const rawKey = generateApiKey();
-    const { rawKey: returnedKey, prefix } = await createOrUpdateUser({
+    return {
       uid: decoded.uid,
       email: decoded.email ?? undefined,
-      displayName: decoded.name ?? undefined,
-      apiKey: rawKey,
+      name: decoded.name ?? undefined,
+    };
+  } catch (err) {
+    console.error('[MRcipher] ID token verification failed:', err);
+    throw new ApiError(
+      'Invalid or expired Firebase ID token',
+      401,
+      'UNAUTHORIZED',
+    );
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const origin = getOriginHeader(req);
+
+  try {
+    const { uid } = await verifyIdTokenFromHeader(req);
+    const keys = await listApiKeysByUser(uid);
+    const allowedOrigin = origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*';
+
+    const response = successResponse({ keys }, { status: 200 });
+    return applyCorsHeaders(response, allowedOrigin);
+  } catch (err) {
+    logServerError('List keys endpoint error', err, {
+      origin,
+      method: req.method,
+      path: req.nextUrl.pathname,
+    });
+
+    const response = errorResponse(err);
+    return applyCorsHeaders(
+      response,
+      origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*',
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const origin = getOriginHeader(req);
+
+  try {
+    const { uid, email, name } = await verifyIdTokenFromHeader(req);
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      throw new ApiError(
+        'Invalid JSON body. Expected: { "name": "..." }',
+        400,
+        'VALIDATION_ERROR',
+      );
+    }
+
+    const parsed = createKeySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(
+        parsed.error.errors.map((e) => e.message).join('; '),
+        400,
+        'VALIDATION_ERROR',
+      );
+    }
+
+    // Ensure user metadata exists in Firestore.
+    await createOrUpdateUser({ uid, email, displayName: name });
+
+    const { rawKey, publicView } = await createApiKey({
+      uid,
+      email,
+      name: parsed.data.name,
     });
 
     const allowedOrigin = origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*';
     const response = successResponse(
       {
-        apiKey: returnedKey,
-        prefix,
-        email: decoded.email,
+        apiKey: rawKey,
+        key: publicView,
       },
       { status: 201 },
     );
 
     return applyCorsHeaders(response, allowedOrigin);
   } catch (err) {
-    logServerError('Keys endpoint error', err, {
+    logServerError('Create key endpoint error', err, {
       origin,
       method: req.method,
       path: req.nextUrl.pathname,
