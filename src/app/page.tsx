@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Logo } from '@/components/Logo';
+import { CodeTemplates } from '@/components/CodeTemplates';
 import { ApiKeyPublicView } from '@/lib/types';
 
 export default function HomePage() {
@@ -13,7 +14,6 @@ export default function HomePage() {
   const [apiKeyLoading, setApiKeyLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
-  const [codeCopied, setCodeCopied] = useState(false);
 
   const loadApiKeys = useCallback(async () => {
     setError('');
@@ -98,44 +98,6 @@ export default function HomePage() {
     });
   }
 
-  const integrationCode = freshApiKey
-    ? `const SERVER_URL = "${typeof window !== 'undefined' ? window.location.origin : 'https://mrcipher.vercel.app'}";
-const API_KEY = "${freshApiKey}";
-
-async function encrypt(content) {
-  const res = await fetch(\`\${SERVER_URL}/api/v1/encrypt\`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: \`Bearer \${API_KEY}\`,
-      origin: SERVER_URL,
-    },
-    body: JSON.stringify({ content }),
-  });
-  return res.json();
-}
-
-async function decrypt(encrypted) {
-  const res = await fetch(\`\${SERVER_URL}/api/v1/decrypt\`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: \`Bearer \${API_KEY}\`,
-      origin: SERVER_URL,
-    },
-    body: JSON.stringify({ content: encrypted }),
-  });
-  return res.json();
-}`
-    : '';
-
-  function copyIntegrationCode() {
-    if (!integrationCode) return;
-    navigator.clipboard.writeText(integrationCode).then(() => {
-      setCodeCopied(true);
-      setTimeout(() => setCodeCopied(false), 2000);
-    });
-  }
 
   if (loading) {
     return (
@@ -279,20 +241,15 @@ async function decrypt(encrypted) {
                 </div>
               )}
 
-              {integrationCode && (
-                <div className="mt-2">
-                  <h3 className="card-title">Integratsiya namunasi</h3>
-                  <p className="card-desc">
-                    Ushbu kodni dasturingizga qo&apos;shing.
-                  </p>
-                  <pre className="code-block">{integrationCode}</pre>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={copyIntegrationCode}
-                  >
-                    {codeCopied ? 'Nusxa olindi!' : 'Kodni nusxa olish'}
-                  </button>
-                </div>
+              {freshApiKey && (
+                <CodeTemplates
+                  serverUrl={
+                    typeof window !== 'undefined'
+                      ? window.location.origin
+                      : 'https://mrcipher.vercel.app'
+                  }
+                  apiKey={freshApiKey}
+                />
               )}
 
               {error && (
