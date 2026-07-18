@@ -57,8 +57,6 @@ function getFirebaseAdminApp(): App {
   return app;
 }
 
-export { getFirebaseAdminApp };
-
 let dbInstance: Firestore | undefined;
 
 /**
@@ -82,4 +80,4 @@ export function getAuthInstance() {
   return getAuth(getFirebaseAdminApp());
 }
 
-export { FieldValue, Timestamp } from 'firebase-admin/firestore';
+export { FieldValue } from 'firebase-admin/firestore';

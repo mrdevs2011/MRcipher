@@ -5,7 +5,6 @@ import {
   createOrUpdateUser,
   createApiKey,
   listApiKeysByUser,
-  revokeApiKey,
   deleteApiKey,
   updateApiKey,
 } from '@/lib/firestore/users';

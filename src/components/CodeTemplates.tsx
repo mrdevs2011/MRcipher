@@ -19,7 +19,7 @@ SyntaxHighlighter.registerLanguage('php', php);
 SyntaxHighlighter.registerLanguage('bash', bash);
 SyntaxHighlighter.registerLanguage('html', html);
 
-type TemplateKey = 'javascript' | 'python' | 'java' | 'go' | 'php' | 'curl' | 'html' | 'sdk';
+type TemplateKey = 'javascript' | 'python' | 'java' | 'go' | 'php' | 'curl' | 'html';
 
 interface CodeTemplatesProps {
   serverUrl: string;
@@ -30,27 +30,6 @@ const templates: Record<
   TemplateKey,
   { label: string; language: string; code: (serverUrl: string, apiKey: string) => string }
 > = {
-  sdk: {
-    label: 'Universal SDK',
-    language: 'javascript',
-    code: (url, key) => `import { MRCipherClient } from './mrcipher-sdk';
-
-const cipher = new MRCipherClient({
-  serverUrl: "${url}",
-  apiKey: "${key}",
-  encryptFields: ["phone", "otp", "email"],
-  decryptFields: ["phone", "otp"],
-});
-
-const res = await cipher.fetch("https://your-api.com/api/send-otp", {
-  method: "POST",
-  body: JSON.stringify({ phone: "+998901234567" }),
-});
-const data = await res.json();
-
-// React:
-// const { secureFetch } = useMRCipher({ serverUrl, apiKey, encryptFields: [...] });`,
-  },
   javascript: {
     label: 'JavaScript',
     language: 'javascript',
@@ -203,7 +182,7 @@ async function encrypt(content) {
 };
 
 export function CodeTemplates({ serverUrl, apiKey }: CodeTemplatesProps) {
-  const [active, setActive] = useState<TemplateKey>('sdk');
+  const [active, setActive] = useState<TemplateKey>('javascript');
   const [copied, setCopied] = useState(false);
 
   const activeTemplate = templates[active];

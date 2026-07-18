@@ -229,23 +229,6 @@ function normalizeScopes(scopes?: string[]): string[] | undefined {
 }
 
 /**
- * Revoke an API key by document id. Only the owner can revoke their own key.
- */
-export async function revokeApiKey(
-  uid: string,
-  docId: string,
-): Promise<boolean> {
-  const doc = await getDb().collection(COLLECTION_API_KEYS).doc(docId).get();
-  if (!doc.exists) return false;
-
-  const data = doc.data() as ApiKeyDoc;
-  if (data.uid !== uid) return false;
-
-  await doc.ref.update({ revoked: true });
-  return true;
-}
-
-/**
  * Permanently delete an API key. Only the owner can delete their own key.
  */
 export async function deleteApiKey(uid: string, docId: string): Promise<boolean> {
@@ -263,22 +246,13 @@ export async function deleteApiKey(uid: string, docId: string): Promise<boolean>
  * Hash an API key using SHA-256. The same function is used when creating
  * and verifying keys so the raw key never needs to be stored.
  */
-export function hashApiKey(apiKey: string): string {
+function hashApiKey(apiKey: string): string {
   return createHash('sha256').update(apiKey).digest('hex');
 }
 
 /**
  * Generate a random API key for a new client.
  */
-export function generateApiKey(): string {
+function generateApiKey(): string {
   return `mr_${randomBytes(32).toString('base64url')}`;
-}
-
-/**
- * Check whether a user document already exists.
- */
-export async function getUserByUid(uid: string): Promise<UserDoc | null> {
-  const doc = await getDb().collection(COLLECTION_USERS).doc(uid).get();
-  if (!doc.exists) return null;
-  return doc.data() as UserDoc;
 }

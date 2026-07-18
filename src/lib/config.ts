@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'crypto';
+import { createHash } from 'crypto';
 
 /**
  * Centralized configuration validated at startup.
@@ -58,10 +58,3 @@ export function deriveUserKey(userId: string): Buffer {
     .digest();
 }
 
-/**
- * Generate a random API key for a new client. The raw key should be shown
- * exactly once; only its SHA-256 hash is stored in Firestore.
- */
-export function generateApiKey(): string {
-  return `mr_${randomBytes(32).toString('base64url')}`;
-}

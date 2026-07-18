@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://mrcipher.vercel.app';
+
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  env: {
+    NEXT_PUBLIC_APP_URL: APP_URL,
+  },
 
   async headers() {
     const apiSecurityHeaders = [
@@ -64,7 +69,7 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.google-analytics.com https://mrcipher.vercel.app http://localhost:3000; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
+              `default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.google-analytics.com ${APP_URL} http://localhost:3000; frame-ancestors 'none'; base-uri 'self'; form-action 'self';`,
           },
         ],
       },

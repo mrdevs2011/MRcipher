@@ -26,22 +26,3 @@ export function applySecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-/**
- * Build a strict Content-Security-Policy for static pages.
- *
- * Inline scripts/styles are blocked because the dashboard does not rely on them.
- */
-export function buildCspHeader(): string {
-  const directives = [
-    "default-src 'self'",
-    "script-src 'self'",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:",
-    "font-src 'self' https://fonts.gstatic.com",
-    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.google-analytics.com",
-    "frame-ancestors 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-  ];
-  return directives.join('; ');
-}

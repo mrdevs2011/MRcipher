@@ -26,7 +26,6 @@ yarn-error.log*
 
 # TypeScript
 *.tsbuildinfo
-next-env.d.ts
 
 # IDE / OS
 .idea/
@@ -34,4 +33,3 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 .vercel
-.env*

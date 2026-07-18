@@ -1,6 +1,6 @@
 import { getDb } from '../firebase';
 import { COLLECTION_LOGS } from '../config';
-import { UsageLogDocInput, UsageAggregateDoc } from '../types';
+import { UsageLogDocInput } from '../types';
 import { FieldValue } from '../firebase';
 
 /**

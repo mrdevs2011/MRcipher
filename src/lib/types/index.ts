@@ -15,24 +15,6 @@ export interface EncryptedPayload {
   version: 'v1';
 }
 
-/** Shape of the request body for POST /api/v1/encrypt */
-export interface EncryptRequestBody {
-  /** Any JSON-serializable value. It will be stringified before encryption. */
-  content: unknown;
-}
-
-/** Shape of the request body for POST /api/v1/decrypt */
-export interface DecryptRequestBody {
-  /** Encrypted container produced by /api/v1/encrypt. */
-  content: EncryptedPayload;
-}
-
-/** Shape of the request body for POST /api/v1/keys */
-export interface CreateKeyRequestBody {
-  /** Human-readable name for the API key (e.g., "Production server"). */
-  name: string;
-}
-
 /** Authenticated user returned by Firebase ID token verification. */
 export interface AuthenticatedUser {
   uid: string;
@@ -95,17 +77,6 @@ export interface UsageLogDocInput {
   error_message?: string;
   origin?: string;
   ip?: string;
-}
-
-/** Per-user usage aggregate stored in Firestore. */
-export interface UsageAggregateDoc {
-  uid: string;
-  total_encrypts: number;
-  total_decrypts: number;
-  total_health_checks: number;
-  total_errors: number;
-  last_request_at: Timestamp | string;
-  updated_at: Timestamp | string;
 }
 
 /** Usage statistics returned to the user. */

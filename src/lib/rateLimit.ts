@@ -55,10 +55,3 @@ export function isIpAllowed(ip: string | null): boolean {
   return isAllowed(bucket, IP_MAX);
 }
 
-/**
- * Remaining requests in current window for an API key.
- */
-export function remainingForKey(apiKey: string): number {
-  const bucket = getBucket(`key:${apiKey}`);
-  return Math.max(0, DEFAULT_MAX - bucket.count);
-}

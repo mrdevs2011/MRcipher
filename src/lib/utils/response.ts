@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { isApiError, ApiError } from './errors';
+import { isApiError } from './errors';
 
 /**
  * Standard JSON response builder.
  */
 
-export interface ApiResponse<T = unknown> {
+interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: {
