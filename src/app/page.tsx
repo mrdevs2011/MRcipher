@@ -7,7 +7,7 @@ import { CodeTemplates } from '@/components/CodeTemplates';
 import { ApiKeyPublicView } from '@/lib/types';
 
 export default function HomePage() {
-  const { user, loading, signInWithGoogle, logout, refreshIdToken } = useAuth();
+  const { user, loading, signInWithGoogle, logout, refreshIdToken, signInError, clearSignInError } = useAuth();
   const [apiKeys, setApiKeys] = useState<ApiKeyPublicView[]>([]);
   const [newKeyName, setNewKeyName] = useState('');
   const [freshApiKey, setFreshApiKey] = useState('');
@@ -136,6 +136,41 @@ export default function HomePage() {
           <div className="card empty-state">
             <Logo size={64} />
             <h1 style={{ marginBottom: '0.5rem' }}>MRcipher</h1>
+            {signInError && (
+              <div
+                style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: 'var(--radius)',
+                  padding: '0.875rem 1rem',
+                  color: 'var(--danger)',
+                  fontSize: '0.9rem',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  maxWidth: '420px',
+                }}
+              >
+                <span>{signInError}</span>
+                <button
+                  onClick={clearSignInError}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
+                    padding: '0.375rem 0.75rem',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Yopish
+                </button>
+              </div>
+            )}
             <p className="text-muted" style={{ maxWidth: '420px' }}>
               API-first Encryption-as-a-Service. AES-256-GCM shifrlash bilan
               har qanday JSON malumotni himoyalang.
