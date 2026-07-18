@@ -10,7 +10,7 @@ import { GLOBAL_ALLOWED_ORIGINS } from '../env';
  */
 
 const CORS_METHODS = 'POST, OPTIONS';
-const CORS_HEADERS = 'Content-Type, x-api-key';
+const CORS_HEADERS = 'Content-Type, Authorization, x-api-key';
 const MAX_AGE = '86400';
 
 /**
