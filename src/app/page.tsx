@@ -466,9 +466,47 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="empty-state">
-        <Logo size={48} />
-        <p className="text-muted">Yuklanmoqda...</p>
+      <div className="page">
+        <nav className="navbar">
+          <div className="navbar-inner container">
+            <a href="/" className="brand">
+              <Logo size={28} />
+              MRcipher
+            </a>
+            <div className="skeleton skeleton-sm" style={{ width: 96, height: 36 }} />
+          </div>
+        </nav>
+        <main>
+          <div className="container">
+            <section className="hero skeleton-hero">
+              <div className="skeleton skeleton-badge" style={{ width: 280, height: 28 }} />
+              <div className="skeleton skeleton-circle" style={{ width: 80, height: 80 }} />
+              <div className="skeleton" style={{ width: 360, height: 56, marginTop: 24 }} />
+              <div className="skeleton" style={{ width: 480, height: 24 }} />
+              <div className="skeleton" style={{ width: 160, height: 44, marginTop: 8 }} />
+              <div className="grid-3 mt-2">
+                <div className="feature-card skeleton-card">
+                  <div className="skeleton skeleton-icon" />
+                  <div className="skeleton" style={{ width: 120, height: 20 }} />
+                  <div className="skeleton" style={{ width: '100%', height: 48 }} />
+                </div>
+                <div className="feature-card skeleton-card">
+                  <div className="skeleton skeleton-icon" />
+                  <div className="skeleton" style={{ width: 120, height: 20 }} />
+                  <div className="skeleton" style={{ width: '100%', height: 48 }} />
+                </div>
+                <div className="feature-card skeleton-card">
+                  <div className="skeleton skeleton-icon" />
+                  <div className="skeleton" style={{ width: 120, height: 20 }} />
+                  <div className="skeleton" style={{ width: '100%', height: 48 }} />
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
+        <footer className="footer">
+          <div className="skeleton" style={{ width: 280, height: 16, margin: '0 auto' }} />
+        </footer>
       </div>
     );
   }

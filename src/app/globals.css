@@ -693,6 +693,71 @@ label.block {
 .text-muted { color: var(--text-muted); }
 .text-primary { color: var(--primary); }
 
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-input) 0%,
+    rgba(55, 65, 81, 0.7) 50%,
+    var(--bg-input) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-sm {
+  border-radius: var(--radius);
+}
+
+.skeleton-circle {
+  border-radius: 50%;
+  margin: 0 auto;
+}
+
+.skeleton-badge {
+  border-radius: 9999px;
+  margin: 0 auto 1.5rem;
+}
+
+.skeleton-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+}
+
+.skeleton-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.skeleton-hero .skeleton {
+  max-width: 100%;
+}
+
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--bg-card);
+}
+
+.skeleton-card .skeleton:last-child {
+  margin-top: auto;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 .mt-1 { margin-top: 1rem; }
 .mt-2 { margin-top: 1.5rem; }
 .mb-1 { margin-bottom: 1rem; }
