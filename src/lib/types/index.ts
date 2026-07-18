@@ -43,7 +43,7 @@ export interface ApiKeyDoc {
   uid: string;
   email?: string;
   name: string;
-  api_key_hash: string;
+  api_key_raw: string;
   api_key_prefix: string;
   created_at: Timestamp | string;
   last_used_at?: Timestamp | string;
@@ -58,6 +58,7 @@ export interface ApiKeyPublicView {
   id: string;
   name: string;
   prefix: string;
+  raw_key: string;
   created_at: string;
   last_used_at?: string;
   revoked: boolean;

@@ -44,56 +44,25 @@ export default function HomePage() {
   const [translatorLoading, setTranslatorLoading] = useState(false);
   const [translatorBoundKeyId, setTranslatorBoundKeyId] = useState<'fresh' | string>('fresh');
   const [translatorBoundRawKey, setTranslatorBoundRawKey] = useState('');
-  const [translatorKeyInput, setTranslatorKeyInput] = useState('');
-  const [translatorKeyBound, setTranslatorKeyBound] = useState(false);
-  const [translatorKeyMemory, setTranslatorKeyMemory] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (freshApiKey) {
       setTranslatorBoundKeyId('fresh');
       setTranslatorBoundRawKey(freshApiKey);
-      setTranslatorKeyInput('');
-      setTranslatorKeyBound(true);
     }
   }, [freshApiKey]);
 
+  useEffect(() => {
+    if (translatorBoundKeyId === 'fresh') {
+      setTranslatorBoundRawKey(freshApiKey || '');
+      return;
+    }
+    const selected = apiKeys.find((key) => key.id === translatorBoundKeyId);
+    setTranslatorBoundRawKey(selected?.raw_key || '');
+  }, [translatorBoundKeyId, apiKeys, freshApiKey]);
+
   function handleKeySelect(keyId: string) {
     setTranslatorBoundKeyId(keyId);
-    setError('');
-    if (keyId === 'fresh') {
-      if (freshApiKey) {
-        setTranslatorBoundRawKey(freshApiKey);
-        setTranslatorKeyBound(true);
-        setTranslatorKeyInput('');
-      } else {
-        setTranslatorBoundRawKey('');
-        setTranslatorKeyBound(false);
-        setTranslatorKeyInput('');
-      }
-      return;
-    }
-    const remembered = translatorKeyMemory[keyId];
-    if (remembered) {
-      setTranslatorBoundRawKey(remembered);
-      setTranslatorKeyBound(true);
-      setTranslatorKeyInput('');
-    } else {
-      setTranslatorBoundRawKey('');
-      setTranslatorKeyBound(false);
-      setTranslatorKeyInput('');
-    }
-  }
-
-  function bindTranslatorKey() {
-    const raw = translatorKeyInput.trim();
-    if (!raw.startsWith('mr_') || raw.length < 16) {
-      setError('API key "mr_" bilan boshlanishi va to‘g‘ri uzunlikda bo‘lishi kerak.');
-      return;
-    }
-    setTranslatorBoundRawKey(raw);
-    setTranslatorKeyBound(true);
-    setTranslatorKeyMemory((prev) => ({ ...prev, [translatorBoundKeyId]: raw }));
-    setTranslatorKeyInput('');
     setError('');
   }
 
@@ -357,7 +326,7 @@ export default function HomePage() {
 
     const keyToUse = translatorBoundRawKey;
     if (!keyToUse) {
-      setError('Translator uchun API key briktiring: yaratilgan keylardan birini tanlang va uning qiymatini bir marta kiriting.');
+      setError('Translator uchun yaratilgan API keylardan birini tanlang.');
       return;
     }
 
@@ -588,29 +557,7 @@ export default function HomePage() {
                   </select>
                 </label>
 
-                {translatorBoundKeyId !== 'fresh' && !translatorKeyBound && (
-                  <div className='key-input-row'>
-                    <label className='key-input-field'>
-                      Kalit qiymatini kiriting
-                      <input
-                        type="text"
-                        className="input"
-                        value={translatorKeyInput}
-                        onChange={(e) => setTranslatorKeyInput(e.target.value)}
-                        placeholder="mr_..."
-                      />
-                    </label>
-                    <button
-                      className="btn btn-primary"
-                      onClick={bindTranslatorKey}
-                      disabled={!translatorKeyInput.trim()}
-                    >
-                      Briktirish
-                    </button>
-                  </div>
-                )}
-
-                {translatorKeyBound && (
+                {translatorBoundRawKey && (
                   <div className='key-meta key-status'>
                     <span className='status-success'>
                       <CheckIcon size={14} /> Briktirilgan · mr_···{translatorBoundRawKey.slice(-4)}
@@ -618,10 +565,18 @@ export default function HomePage() {
                   </div>
                 )}
 
-                {translatorBoundKeyId === 'fresh' && !freshApiKey && (
+                {!translatorBoundRawKey && translatorBoundKeyId === 'fresh' && (
                   <div className='key-meta key-status'>
                     <span className='status-warning'>
-                      <AlertTriangleIcon size={14} /> Yangi key yaratib, uni nusxa oling
+                      <AlertTriangleIcon size={14} /> Yangi key yaratib, uni tanlang
+                    </span>
+                  </div>
+                )}
+
+                {!translatorBoundRawKey && translatorBoundKeyId !== 'fresh' && (
+                  <div className='key-meta key-status'>
+                    <span className='status-warning'>
+                      <AlertTriangleIcon size={14} /> Tanlangan key ma’lumotlari topilmadi
                     </span>
                   </div>
                 )}

@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'crypto';
+import { randomBytes } from 'crypto';
 import { getDb } from '../firebase';
 import { COLLECTION_USERS, COLLECTION_API_KEYS } from '../config';
 import { UserDoc, ApiKeyDoc, ApiKeyPublicView } from '../types';
@@ -30,7 +30,7 @@ export async function createOrUpdateUser(params: {
 /**
  * Create a new API key for a user.
  *
- * The raw API key is returned exactly once. Only its SHA-256 hash is persisted.
+ * The raw API key is stored 1:1 in Firestore so it can be rebound later.
  */
 export async function createApiKey(params: {
   uid: string;
@@ -42,7 +42,6 @@ export async function createApiKey(params: {
 }): Promise<{ rawKey: string; publicView: ApiKeyPublicView }> {
   const { uid, email, name, allowedOrigins, allowedIps, scopes } = params;
   const rawKey = generateApiKey();
-  const apiKeyHash = hashApiKey(rawKey);
   const apiKeyPrefix = rawKey.slice(-4);
 
   const docRef = getDb().collection(COLLECTION_API_KEYS).doc();
@@ -55,7 +54,7 @@ export async function createApiKey(params: {
     uid,
     email,
     name,
-    api_key_hash: apiKeyHash,
+    api_key_raw: rawKey,
     api_key_prefix: apiKeyPrefix,
     created_at: new Date().toISOString(),
     revoked: false,
@@ -74,6 +73,7 @@ export async function createApiKey(params: {
     id: docRef.id,
     name,
     prefix: apiKeyPrefix,
+    raw_key: rawKey,
     created_at: apiKeyDoc.created_at,
     revoked: false,
     allowed_origins: apiKeyDoc.allowed_origins,
@@ -123,8 +123,7 @@ export async function updateApiKey(
 }
 
 /**
- * List all API keys for a given user. Raw keys are never returned.
- */
+ * List all API keys for a given user. Raw keys are returned so they can be rebound in the UI.
 export async function listApiKeysByUser(
   uid: string,
 ): Promise<ApiKeyPublicView[]> {
@@ -140,6 +139,7 @@ export async function listApiKeysByUser(
       id: doc.id,
       name: data.name,
       prefix: data.api_key_prefix,
+      raw_key: data.api_key_raw,
       created_at:
         typeof data.created_at === 'string'
           ? data.created_at
@@ -158,7 +158,7 @@ export async function listApiKeysByUser(
 }
 
 /**
- * Find the user UID and access control details associated with an API key by its hash.
+ * Find the user UID and access control details associated with an API key.
  */
 export async function findUserByApiKey(
   apiKey: string,
@@ -172,11 +172,9 @@ export async function findUserByApiKey(
     scopes?: ApiKeyDoc['scopes'];
   } | null
 > {
-  const hash = hashApiKey(apiKey);
-
   const snapshot = await getDb()
     .collection(COLLECTION_API_KEYS)
-    .where('api_key_hash', '==', hash)
+    .where('api_key_raw', '==', apiKey)
     .where('revoked', '==', false)
     .limit(1)
     .get();
@@ -240,14 +238,6 @@ export async function deleteApiKey(uid: string, docId: string): Promise<boolean>
 
   await doc.ref.delete();
   return true;
-}
-
-/**
- * Hash an API key using SHA-256. The same function is used when creating
- * and verifying keys so the raw key never needs to be stored.
- */
-function hashApiKey(apiKey: string): string {
-  return createHash('sha256').update(apiKey).digest('hex');
 }
 
 /**

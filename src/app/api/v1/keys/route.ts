@@ -25,7 +25,7 @@ import {
  * GET /api/v1/keys
  *
  * Returns all API keys for the authenticated user.
- * Raw API keys are never returned; only public metadata is shown.
+ * Raw API keys are returned so the translator can bind automatically.
  *
  * Headers:
  *   Authorization: Bearer <firebase-id-token>  (required)
