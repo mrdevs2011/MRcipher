@@ -619,6 +619,12 @@ export default function HomePage() {
                   <p className="feature-desc">Foydalanish statistikasi: shifrlash/ochish soni.</p>
                 </div>
               </div>
+
+              <div className="mt-1" style={{ textAlign: 'center' }}>
+                <a href="/doc/index.html" className="btn btn-secondary">
+                  Dasturchi uchun qo‘llanma
+                </a>
+              </div>
             </section>
           </>
         )}
