@@ -25,6 +25,13 @@ export default function HomePage() {
   const [editIps, setEditIps] = useState('');
   const [editScopes, setEditScopes] = useState<Record<string, boolean>>({});
 
+  // Translator state
+  const [translatorMode, setTranslatorMode] = useState<'encrypt' | 'decrypt'>('encrypt');
+  const [translatorInput, setTranslatorInput] = useState('');
+  const [translatorOutput, setTranslatorOutput] = useState('');
+  const [translatorMeta, setTranslatorMeta] = useState<{ latency_ms: number; bytes_in?: number; bytes_out?: number } | null>(null);
+  const [translatorLoading, setTranslatorLoading] = useState(false);
+
   const loadApiKeys = useCallback(async () => {
     setError('');
     try {
@@ -280,6 +287,88 @@ export default function HomePage() {
     });
   }
 
+  async function runTranslator() {
+    if (!translatorInput.trim()) return;
+
+    const keyToUse = freshApiKey;
+    if (!keyToUse) {
+      setError('Translator uchun avval API key yaratishingiz kerak.');
+      return;
+    }
+
+    setTranslatorLoading(true);
+    setError('');
+    setTranslatorMeta(null);
+
+    const start = performance.now();
+    try {
+      if (translatorMode === 'encrypt') {
+        const res = await fetch('/api/v1/encrypt', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            Authorization: `Bearer ${keyToUse}`,
+          },
+          body: JSON.stringify({ content: translatorInput }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+          throw new Error(json.error?.message || 'Shifrlashda xatolik');
+        }
+        setTranslatorOutput(JSON.stringify(json.data, null, 2));
+        setTranslatorMeta({
+          latency_ms: Math.round(performance.now() - start),
+          bytes_in: json.meta?.bytes_in,
+          bytes_out: json.meta?.bytes_out,
+        });
+      } else {
+        let payload;
+        try {
+          payload = JSON.parse(translatorInput);
+        } catch {
+          throw new Error('Input to‘g‘ri JSON emas. Avval shifrlangan payload kiriting.');
+        }
+        const res = await fetch('/api/v1/decrypt', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            Authorization: `Bearer ${keyToUse}`,
+          },
+          body: JSON.stringify({ content: payload }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+          throw new Error(json.error?.message || 'Ochishda xatolik');
+        }
+        setTranslatorOutput(typeof json.data === 'string' ? json.data : JSON.stringify(json.data, null, 2));
+        setTranslatorMeta({
+          latency_ms: Math.round(performance.now() - start),
+          bytes_in: json.meta?.bytes_in,
+          bytes_out: json.meta?.bytes_out,
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Tarmoq xatosi');
+    } finally {
+      setTranslatorLoading(false);
+    }
+  }
+
+  function swapTranslator() {
+    setTranslatorMode((prev) => (prev === 'encrypt' ? 'decrypt' : 'encrypt'));
+    setTranslatorInput(translatorOutput);
+    setTranslatorOutput('');
+    setTranslatorMeta(null);
+  }
+
+  function copyTranslatorOutput() {
+    if (!translatorOutput) return;
+    navigator.clipboard.writeText(translatorOutput).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   if (loading) {
     return (
       <div className="empty-state">
@@ -374,6 +463,117 @@ export default function HomePage() {
                 </div>
                 <button className="btn btn-secondary btn-sm" onClick={logout}>Chiqish</button>
               </div>
+            </section>
+
+            <section className="card" style={{ marginBottom: '1.25rem' }}>
+              <div className="card-header">
+                <div>
+                  <div className="card-title">Cipher Translator</div>
+                  <p className="card-desc" style={{ margin: 0 }}>
+                    Google Translate kabi: matnni shifrlang yoki shifrlangan payload ni oching.
+                  </p>
+                </div>
+                <div className="tab-list">
+                  <button
+                    className={`tab ${translatorMode === 'encrypt' ? 'active' : ''}`}
+                    onClick={() => {
+                      setTranslatorMode('encrypt');
+                      setTranslatorInput(translatorOutput);
+                      setTranslatorOutput('');
+                      setTranslatorMeta(null);
+                    }}
+                  >
+                    Matn → Cipher
+                  </button>
+                  <button
+                    className={`tab ${translatorMode === 'decrypt' ? 'active' : ''}`}
+                    onClick={() => {
+                      setTranslatorMode('decrypt');
+                      setTranslatorInput(translatorOutput);
+                      setTranslatorOutput('');
+                      setTranslatorMeta(null);
+                    }}
+                  >
+                    Cipher → Matn
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '1rem', alignItems: 'stretch' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label className="block" style={{ marginBottom: 0 }}>
+                    {translatorMode === 'encrypt' ? 'Matn' : 'Cipher JSON'}
+                  </label>
+                  <textarea
+                    className="textarea"
+                    rows={6}
+                    value={translatorInput}
+                    onChange={(e) => setTranslatorInput(e.target.value)}
+                    placeholder={
+                      translatorMode === 'encrypt'
+                        ? 'Shifrlash uchun matn kiriting...'
+                        : '{\n  "ciphertext": "...",\n  "iv": "...",\n  "tag": "...",\n  "version": "v1"\n}'
+                    }
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '0.5rem' }}>
+                  <button
+                    className="btn btn-primary"
+                    onClick={runTranslator}
+                    disabled={translatorLoading || !translatorInput.trim()}
+                    style={{ minWidth: 120 }}
+                  >
+                    {translatorLoading
+                      ? 'Yuklanmoqda...'
+                      : translatorMode === 'encrypt'
+                        ? 'Shifrlash'
+                        : 'Ochish'}
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={swapTranslator} type="button">
+                    🔄 Almashtirish
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label className="block" style={{ marginBottom: 0 }}>
+                    {translatorMode === 'encrypt' ? 'Cipher JSON' : 'Matn'}
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={copyTranslatorOutput}
+                      disabled={!translatorOutput}
+                      style={{ marginLeft: '0.75rem', padding: '0.35rem 0.6rem' }}
+                    >
+                      {copied ? 'Nusxa olindi!' : 'Nusxa olish'}
+                    </button>
+                  </label>
+                  <textarea
+                    className="textarea"
+                    rows={6}
+                    value={translatorOutput}
+                    readOnly
+                    placeholder="Natija shu yerda ko'rinadi..."
+                  />
+                </div>
+              </div>
+
+              {translatorMeta && (
+                <div className="key-meta" style={{ marginTop: '0.75rem' }}>
+                  <span>Latency: {translatorMeta.latency_ms}ms</span>
+                  {translatorMeta.bytes_in !== undefined && (
+                    <span>Bytes in: {translatorMeta.bytes_in}</span>
+                  )}
+                  {translatorMeta.bytes_out !== undefined && (
+                    <span>Bytes out: {translatorMeta.bytes_out}</span>
+                  )}
+                </div>
+              )}
+
+              {freshApiKey && (
+                <div className="input-hint" style={{ marginTop: '0.5rem' }}>
+                  Faqat yangi yaratilgan API key bilan ishlaydi: mr_···{freshApiKey.slice(-4)}
+                </div>
+              )}
             </section>
 
             <section className="card" style={{ marginBottom: '1.25rem' }}>
