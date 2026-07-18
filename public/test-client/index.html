@@ -21,6 +21,7 @@
       --danger: #ef4444;
       --danger-bg: rgba(239, 68, 68, 0.12);
       --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.12);
       --radius: 0.75rem;
       --radius-sm: 0.5rem;
       --mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
@@ -65,7 +66,7 @@
     }
     .badge.ok { background: var(--success-bg); color: var(--success); }
     .badge.err { background: var(--danger-bg); color: var(--danger); }
-    .badge.warn { background: rgba(245, 158, 11, 0.12); color: var(--warning); }
+    .badge.warn { background: var(--warning-bg); color: var(--warning); }
     .row { display: flex; gap: 0.5rem; }
     input, textarea, select {
       width: 100%;
@@ -93,6 +94,7 @@
     button:hover { background: var(--primary-hover); }
     button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
     button.secondary:hover { background: var(--input); }
+    button.small { padding: 0.35rem 0.6rem; font-size: 0.75rem; }
     .phones {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -164,7 +166,6 @@
       color: var(--muted);
     }
     .flow-step.active { border-color: var(--primary); color: var(--primary); background: rgba(34, 211, 238, 0.08); }
-    .flow-arrow { text-align: center; color: var(--dim); font-size: 1.2rem; }
     .logs {
       height: 300px;
       overflow-y: auto;
@@ -179,10 +180,12 @@
     .log-entry.ok { color: var(--success); }
     .log-entry.err { color: var(--danger); }
     .log-entry.info { color: var(--primary); }
+    .log-entry.warn { color: var(--warning); }
     .config { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
     @media (max-width: 700px) { .config { grid-template-columns: 1fr; } }
     .status-line { font-size: 0.85rem; color: var(--muted); min-height: 1.25rem; margin-top: 0.5rem; }
     .health { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .hint { font-size: 0.8rem; color: var(--dim); margin-top: 0.25rem; }
   </style>
 </head>
 <body>
@@ -223,9 +226,13 @@
       <div class="card">
         <div class="card-title">🧪 Shifrlash laboratoriyasi</div>
         <textarea id="labInput" placeholder="Shifrlash uchun matn kiriting..."></textarea>
+        <div class="hint">
+          “Shifrlash” plaintextdan JSON payload yaratadi. “Ochish” esa shu JSON ni plaintextga qaytaradi.
+        </div>
         <div class="row" style="margin-top: 0.5rem;">
           <button onclick="runLabEncrypt()">Shifrlash</button>
           <button class="secondary" onclick="runLabDecrypt()">Ochish</button>
+          <button class="secondary small" onclick="copyLabInput()">Nusxa</button>
         </div>
         <div id="labStatus" class="status-line"></div>
         <details class="msg-detail" style="margin-top: 0.75rem;">
@@ -290,6 +297,8 @@
 
     const logsEl = document.getElementById('logs');
     const flowSteps = [1,2,3,4,5,6].map(i => document.getElementById('flow' + i));
+    const decryptedCache = new Map();
+    let lastCiphertextJson = '';
 
     function serverUrl() {
       return document.getElementById('serverUrl').value.replace(/\/$/, '');
@@ -312,6 +321,16 @@
 
     window.clearLogs = function() {
       logsEl.innerHTML = '';
+    };
+
+    window.copyLabInput = function() {
+      const val = document.getElementById('labInput').value;
+      if (!val) return;
+      navigator.clipboard.writeText(val).then(() => {
+        log('Lab maydoni nusxalandi', 'ok');
+      }).catch((err) => {
+        log('Nusxalash xatosi: ' + err.message, 'err');
+      });
     };
 
     function setFlow(step) {
@@ -342,7 +361,6 @@
           method: 'GET',
           headers: {
             Authorization: `Bearer ${apiKey()}`,
-            origin: window.location.origin,
           },
         });
         const json = await res.json();
@@ -352,15 +370,43 @@
           setHealth('fsHealth', `Firestore: ${json.data?.firestore || 'reachable'}`, true);
           setHealth('keyHealth', `API key: ${keyPrefix()}`, true);
           log(`Health OK — server latency ${json.data?.latency_ms}ms`, 'ok');
-        } else {
-          setHealth('apiHealth', `API: xato ${json.error?.code || res.status}`, false);
-          log(`Health xato: ${json.error?.message || res.status}`, 'err');
+          return;
         }
+
+        const code = json.error?.code;
+        const message = json.error?.message || `HTTP ${res.status}`;
+        if (code === 'FORBIDDEN_SCOPE') {
+          setHealth('apiHealth', `API: ok, lekin health scope yo‘q`, true);
+          setHealth('keyHealth', `API key: ${keyPrefix()} (health scope yo‘q)`, false);
+          log(`Health endpointga ruxsat yo‘q. Encrypt tekshiruvi bilan tasdiqlanmoqda...`, 'warn');
+          await verifyKeyViaEncrypt();
+          return;
+        }
+
+        setHealth('apiHealth', `API: xato ${code || res.status}`, false);
+        setHealth('keyHealth', `API key: ${keyPrefix()}`, false);
+        log(`Health xato: ${message}`, 'err');
       } catch (err) {
         setHealth('apiHealth', 'API: tarmoq xatosi', false);
         log('Health tarmoq xatosi: ' + err.message, 'err');
       }
     };
+
+    async function verifyKeyViaEncrypt() {
+      const start = performance.now();
+      try {
+        const result = await encrypt('ping');
+        const latency = Math.round(performance.now() - start);
+        setHealth('apiHealth', `API: ok (encrypt fallback, ${latency}ms)`, true);
+        setHealth('fsHealth', 'Firestore: tekshirilmagan', false);
+        setHealth('keyHealth', `API key: ${keyPrefix()} (encrypt/decrpyt scope bor)`, true);
+        log(`Encrypt fallback orqali key tasdiqlandi (${latency}ms)`, 'ok');
+      } catch (err) {
+        setHealth('apiHealth', 'API: encrypt fallback xato', false);
+        setHealth('keyHealth', `API key: noto‘g‘ri`, false);
+        log('Encrypt fallback xatosi: ' + err.message, 'err');
+      }
+    }
 
     async function encrypt(text) {
       const start = performance.now();
@@ -369,7 +415,6 @@
         headers: {
           'content-type': 'application/json',
           Authorization: `Bearer ${apiKey()}`,
-          origin: window.location.origin,
         },
         body: JSON.stringify({ content: text }),
       });
@@ -388,7 +433,6 @@
         headers: {
           'content-type': 'application/json',
           Authorization: `Bearer ${apiKey()}`,
-          origin: window.location.origin,
         },
         body: JSON.stringify({ content: payload }),
       });
@@ -418,7 +462,9 @@
       setFlow(2);
       try {
         const result = await encrypt(input);
-        document.getElementById('labStatus').textContent = `Shifrlash bajarildi (${result.latency}ms)`;
+        lastCiphertextJson = JSON.stringify(result.data);
+        document.getElementById('labInput').value = lastCiphertextJson;
+        document.getElementById('labStatus').textContent = `Shifrlash bajarildi (${result.latency}ms). Input maydoni endi ciphertext JSON.`;
         document.getElementById('labResult').innerHTML = `
           <div class="kv"><span class="k">plaintext</span><span class="v">${escapeHtml(input)}</span></div>
           <div class="kv"><span class="k">ciphertext</span><span class="v">${escapeHtml(result.data.ciphertext)}</span></div>
@@ -441,9 +487,14 @@
       if (!input) return;
       document.getElementById('labStatus').textContent = 'Ochilmoqda...';
       try {
-        const payload = JSON.parse(input);
+        let payload;
+        try {
+          payload = JSON.parse(input);
+        } catch (parseErr) {
+          throw new Error('Bu matn JSON emas. Avval “Shifrlash” tugmasini bosing, keyin “Ochish”.');
+        }
         if (!isEncryptedPayload(payload)) {
-          throw new Error('Input to‘g‘ri encrypted payload emas');
+          throw new Error('Bu to‘g‘ri encrypted payload emas. Avval “Shifrlash” tugmasini bosing.');
         }
         const result = await decrypt(payload);
         document.getElementById('labStatus').textContent = `Ochish bajarildi (${result.latency}ms)`;
@@ -519,37 +570,111 @@
       el.scrollTop = el.scrollHeight;
     }
 
+    function formatTime(ts) {
+      if (!ts || !ts.toDate) return '-';
+      try {
+        return ts.toDate().toLocaleTimeString('uz-UZ');
+      } catch {
+        return '-';
+      }
+    }
+
+    function ensurePhoneMessages(phoneId) {
+      return document.getElementById('messages' + phoneId);
+    }
+
+    async function getDecryptedMessage(doc) {
+      const data = doc.data();
+      const raw = data.text;
+      const cached = decryptedCache.get(doc.id);
+
+      if (cached && JSON.stringify(raw) === JSON.stringify(cached.raw)) {
+        return cached;
+      }
+
+      if (!isEncryptedPayload(raw)) {
+        const plain = { plain: raw, latency: null, raw };
+        decryptedCache.set(doc.id, plain);
+        return plain;
+      }
+
+      const start = performance.now();
+      try {
+        const result = await decrypt(raw);
+        const latency = Math.round(performance.now() - start);
+        const entry = { plain: result.data, latency, raw };
+        decryptedCache.set(doc.id, entry);
+        log(`Decrypt: ${doc.ref.path} → plaintext (${latency}ms)`, 'ok');
+        setFlow(6);
+        return entry;
+      } catch (err) {
+        const entry = { plain: '[shifrni ochib bo‘lmadi]', latency: null, raw };
+        decryptedCache.set(doc.id, entry);
+        log('Decrypt xatosi: ' + err.message, 'err');
+        return entry;
+      }
+    }
+
+    function renderAllMessages() {
+      const container1 = ensurePhoneMessages(1);
+      const container2 = ensurePhoneMessages(2);
+      container1.innerHTML = '';
+      container2.innerHTML = '';
+
+      const sorted = [...decryptedCache.entries()].sort((a, b) => {
+        const ta = a[1].createdAt?.toMillis?.() ?? 0;
+        const tb = b[1].createdAt?.toMillis?.() ?? 0;
+        return ta - tb;
+      });
+
+      for (const [id, entry] of sorted) {
+        const { from, plain, raw, time, docPath, latency } = entry;
+        renderMsg(1, from, plain, raw, time, docPath, latency);
+        renderMsg(2, from, plain, raw, time, docPath, latency);
+      }
+    }
+
     onSnapshot(messagesQuery, (snapshot) => {
-      document.getElementById('messages1').innerHTML = '';
-      document.getElementById('messages2').innerHTML = '';
-
-      snapshot.forEach(async (doc) => {
-        const data = doc.data();
-        const from = data.from;
-        const raw = data.text;
-        const time = data.createdAt?.toDate
-          ? data.createdAt.toDate().toLocaleTimeString('uz-UZ')
-          : '-';
-
-        let plain = raw;
-        let decryptLatency = null;
-        if (isEncryptedPayload(raw)) {
-          try {
-            const start = performance.now();
-            const result = await decrypt(raw);
-            plain = result.data;
-            decryptLatency = Math.round(performance.now() - start);
-            log(`Decrypt: ${doc.ref.path} → plaintext (${decryptLatency}ms)`, 'ok');
-            setFlow(6);
-          } catch (err) {
-            plain = '[shifrni ochib bo‘lmadi]';
-            log('Decrypt xatosi: ' + err.message, 'err');
-          }
+      let changed = false;
+      for (const change of snapshot.docChanges()) {
+        const doc = change.doc;
+        if (change.type === 'removed') {
+          decryptedCache.delete(doc.id);
+          changed = true;
+          log(`Firestore: ${doc.ref.path} o‘chirildi`, 'info');
+          continue;
         }
 
-        renderMsg(1, from, plain, raw, time, doc.ref.path, decryptLatency);
-        renderMsg(2, from, plain, raw, time, doc.ref.path, decryptLatency);
-      });
+        const data = doc.data();
+        const cached = decryptedCache.get(doc.id);
+        const rawChanged = !cached || JSON.stringify(data.text) !== JSON.stringify(cached?.raw);
+        const time = formatTime(data.createdAt);
+        const metaChanged = !cached || time !== cached?.time;
+
+        decryptedCache.set(doc.id, {
+          from: data.from,
+          raw: data.text,
+          createdAt: data.createdAt,
+          time,
+          docPath: doc.ref.path,
+          plain: cached?.plain ?? '[ochilmoqda...]',
+          latency: cached?.latency ?? null,
+        });
+
+        if (rawChanged) {
+          getDecryptedMessage(doc).then(() => {
+            renderAllMessages();
+          });
+        }
+
+        if (rawChanged || metaChanged) {
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        renderAllMessages();
+      }
     }, (err) => {
       log('Firestore xatolik: ' + err.message, 'err');
       status(1, 'Firestore xatolik');
