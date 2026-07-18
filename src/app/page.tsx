@@ -9,6 +9,8 @@ import { ApiKeyPublicView } from '@/lib/types';
 export default function HomePage() {
   const { user, loading, signInWithGoogle, logout, refreshIdToken, signInError, clearSignInError } = useAuth();
   const [apiKeys, setApiKeys] = useState<ApiKeyPublicView[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyOrigins, setNewKeyOrigins] = useState('');
   const [newKeyIps, setNewKeyIps] = useState('');
@@ -42,7 +44,7 @@ export default function HomePage() {
 
       const json = await res.json();
       if (!res.ok || !json.success) {
-        setError(json.error?.message || 'API keylar ro\'yxatini yuklashda xatolik');
+        setError(json.error?.message || "API keylar ro'yxatini yuklashda xatolik");
         return;
       }
 
@@ -57,6 +59,22 @@ export default function HomePage() {
       loadApiKeys();
     }
   }, [user, loadApiKeys]);
+
+  function openCreateModal() {
+    setShowCreateModal(true);
+    setShowAdvanced(false);
+    setNewKeyName('');
+    setNewKeyOrigins('');
+    setNewKeyIps('');
+    setNewKeyScopes({});
+    setFreshApiKey('');
+    setError('');
+  }
+
+  function closeCreateModal() {
+    setShowCreateModal(false);
+    setShowAdvanced(false);
+  }
 
   async function createApiKey() {
     setApiKeyLoading(true);
@@ -138,7 +156,7 @@ export default function HomePage() {
 
       const json = await res.json();
       if (!res.ok || !json.success) {
-        setError(json.error?.message || 'API keyni o\'chirishda xatolik');
+        setError(json.error?.message || "API keyni o'chirishda xatolik");
         return;
       }
       await loadApiKeys();
@@ -361,111 +379,15 @@ export default function HomePage() {
             <section className="card" style={{ marginBottom: '1.25rem' }}>
               <div className="card-header">
                 <div>
-                  <div className="card-title">Yangi API key</div>
-                  <p className="card-desc" style={{ margin: 0 }}>Asl key faqat bir marta ko&apos;rsatiladi va tiklab bo&apos;lmaydi.</p>
+                  <div className="card-title">API keylar</div>
+                  <p className="card-desc" style={{ margin: 0 }}>
+                    Yangi kalit faqat bir marta ko&apos;rsatiladi va tiklab bo&apos;lmaydi.
+                  </p>
                 </div>
-              </div>
-
-              <div className="form-row">
-                <label className="block" style={{ marginBottom: 0 }}>
-                  API key nomi
-                  <input
-                    type="text"
-                    className="input"
-                    value={newKeyName}
-                    onChange={(e) => setNewKeyName(e.target.value)}
-                    placeholder="Masalan: Production server"
-                    maxLength={100}
-                  />
-                </label>
-                <button
-                  className="btn btn-primary"
-                  onClick={createApiKey}
-                  disabled={apiKeyLoading}
-                >
-                  {apiKeyLoading ? 'Yaratilmoqda...' : 'Yaratish'}
+                <button className="btn btn-primary" onClick={openCreateModal} disabled={apiKeyLoading}>
+                  API key yaratish
                 </button>
               </div>
-
-              <label className="block mt-1" style={{ marginBottom: 0 }}>
-                Ruxsat etilgan domenlar (ixtiyoriy)
-                <textarea
-                  className="textarea"
-                  rows={2}
-                  value={newKeyOrigins}
-                  onChange={(e) => setNewKeyOrigins(e.target.value)}
-                  placeholder="https://example.com&#10;https://app.example.com"
-                />
-                <span className="input-hint">
-                  Bo&apos;sh qoldirilsa barcha domenlarga ruxsat. Har bir qatorda bitta domen.
-                </span>
-              </label>
-
-              <label className="block mt-1" style={{ marginBottom: 0 }}>
-                Ruxsat etilgan IP manzillar (ixtiyoriy)
-                <textarea
-                  className="textarea"
-                  rows={2}
-                  value={newKeyIps}
-                  onChange={(e) => setNewKeyIps(e.target.value)}
-                  placeholder="192.168.1.10&#10;10.0.0.0/24"
-                />
-                <span className="input-hint">
-                  Bo&apos;sh qoldirilsa barcha IP larga ruxsat. Har bir qatorda bitta IP yoki CIDR.
-                </span>
-              </label>
-
-              <label className="block mt-1" style={{ marginBottom: 0 }}>
-                Ruxsat etilgan endpointlar (ixtiyoriy)
-                {renderScopeCheckboxes(newKeyScopes, setNewKeyScopes)}
-                <span className="input-hint">
-                  Hech biri tanlanmasa barcha endpointlarga ruxsat.
-                </span>
-              </label>
-
-              {freshApiKey && (
-                <div className="secret-box">
-                  <div className="secret-label">Yangi API key — faqat bir marta nusxa oling</div>
-                  <div className="secret-value">{freshApiKey}</div>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={copyApiKey}
-                    style={{ marginTop: '0.75rem' }}
-                  >
-                    {copied ? 'Nusxa olindi!' : 'Nusxa olish'}
-                  </button>
-                </div>
-              )}
-
-              {error && (
-                <div className="alert alert-error mt-1">
-                  <span className="alert-icon">!</span>
-                  <div>{error}</div>
-                </div>
-              )}
-            </section>
-
-            {freshApiKey && (
-              <section className="card" style={{ marginBottom: '1.25rem' }}>
-                <div className="card-title">Integratsiya qilish</div>
-                <p className="card-desc">
-                  Quyidagi template&apos;lardan birini loyihangizga nusxa oling.
-                  SDK avtomatik shifrlaydi va ochadi.
-                </p>
-                <CodeTemplates
-                  serverUrl={
-                    typeof window !== 'undefined'
-                      ? window.location.origin
-                      : 'https://mrcipher.vercel.app'
-                  }
-                  apiKey={freshApiKey}
-                />
-              </section>
-            )}
-
-            <section className="card">
-              <div className="card-title">Saqlangan API keylar</div>
-              <p className="card-desc">Faqat nom va oxirgi 4 ta belgi ko&apos;rsatiladi.</p>
 
               {apiKeys.length === 0 ? (
                 <div className="key-empty">
@@ -551,6 +473,127 @@ export default function HomePage() {
                 </div>
               )}
             </section>
+
+            {showCreateModal && (
+              <div className="modal-overlay" onClick={closeCreateModal}>
+                <div className="modal" onClick={(e) => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <div className="card-title">Yangi API key yaratish</div>
+                    <button className="btn btn-ghost btn-sm" onClick={closeCreateModal}>×</button>
+                  </div>
+
+                  <label className="block" style={{ marginBottom: 0 }}>
+                    API key nomi
+                    <input
+                      type="text"
+                      className="input"
+                      value={newKeyName}
+                      onChange={(e) => setNewKeyName(e.target.value)}
+                      placeholder="Masalan: Production server"
+                      maxLength={100}
+                    />
+                  </label>
+
+                  <button
+                    className="btn btn-ghost btn-sm advanced-toggle"
+                    onClick={() => setShowAdvanced((prev) => !prev)}
+                    type="button"
+                  >
+                    {showAdvanced ? '▼ Advanced sozlamalarni yashirish' : '▶ Advanced sozlamalar'}
+                  </button>
+
+                  {showAdvanced && (
+                    <div className="advanced-fields">
+                      <label className="block mt-1" style={{ marginBottom: 0 }}>
+                        Ruxsat etilgan domenlar (ixtiyoriy)
+                        <textarea
+                          className="textarea"
+                          rows={2}
+                          value={newKeyOrigins}
+                          onChange={(e) => setNewKeyOrigins(e.target.value)}
+                          placeholder="https://example.com&#10;https://app.example.com"
+                        />
+                        <span className="input-hint">
+                          Bo&apos;sh qoldirilsa barcha domenlarga ruxsat. Har bir qatorda bitta domen.
+                        </span>
+                      </label>
+
+                      <label className="block mt-1" style={{ marginBottom: 0 }}>
+                        Ruxsat etilgan IP manzillar (ixtiyoriy)
+                        <textarea
+                          className="textarea"
+                          rows={2}
+                          value={newKeyIps}
+                          onChange={(e) => setNewKeyIps(e.target.value)}
+                          placeholder="192.168.1.10&#10;10.0.0.0/24"
+                        />
+                        <span className="input-hint">
+                          Bo&apos;sh qoldirilsa barcha IP larga ruxsat. Har bir qatorda bitta IP yoki CIDR.
+                        </span>
+                      </label>
+
+                      <label className="block mt-1" style={{ marginBottom: 0 }}>
+                        Ruxsat etilgan endpointlar (ixtiyoriy)
+                        {renderScopeCheckboxes(newKeyScopes, setNewKeyScopes)}
+                        <span className="input-hint">
+                          Hech biri tanlanmasa barcha endpointlarga ruxsat.
+                        </span>
+                      </label>
+                    </div>
+                  )}
+
+                  {freshApiKey && (
+                    <div className="secret-box">
+                      <div className="secret-label">Yangi API key — faqat bir marta nusxa oling</div>
+                      <div className="secret-value">{freshApiKey}</div>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={copyApiKey}
+                        style={{ marginTop: '0.75rem' }}
+                      >
+                        {copied ? 'Nusxa olindi!' : 'Nusxa olish'}
+                      </button>
+                    </div>
+                  )}
+
+                  {error && (
+                    <div className="alert alert-error mt-1">
+                      <span className="alert-icon">!</span>
+                      <div>{error}</div>
+                    </div>
+                  )}
+
+                  <div className="modal-actions">
+                    <button className="btn btn-ghost" onClick={closeCreateModal}>Bekor qilish</button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={createApiKey}
+                      disabled={apiKeyLoading}
+                    >
+                      {apiKeyLoading ? 'Yaratilmoqda...' : 'Yaratish'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {freshApiKey && !showCreateModal && (
+              <section className="card" style={{ marginBottom: '1.25rem' }}>
+                <div className="card-title">Integratsiya qilish</div>
+                <p className="card-desc">
+                  Quyidagi template&apos;lardan birini loyihangizga nusxa oling.
+                  SDK avtomatik shifrlaydi va ochadi.
+                </p>
+                <CodeTemplates
+                  serverUrl={
+                    typeof window !== 'undefined'
+                      ? window.location.origin
+                      : 'https://mrcipher.vercel.app'
+                  }
+                  apiKey={freshApiKey}
+                />
+              </section>
+            )}
 
             <section className="card" style={{ marginTop: '1.25rem' }}>
               <div className="card-title">Endpointlar</div>
