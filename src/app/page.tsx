@@ -358,6 +358,31 @@ export default function HomePage() {
             </section>
 
             <section className="card" style={{ marginTop: '1.5rem' }}>
+              <h3 className="card-title">Universal SDK</h3>
+              <p className="card-desc">
+                Bir marta sozlang va istalgan loyiha serveriga ulang.
+                MRcipher avtomatik shifrlaydi va ochib beradi.
+              </p>
+              <pre className="code-block">{`import { MRCipherClient } from './mrcipher-sdk';
+
+const cipher = new MRCipherClient({
+  serverUrl: '${typeof window !== 'undefined' ? window.location.origin : 'https://mrcipher.vercel.app'}',
+  apiKey: '${freshApiKey || 'mr_...'}',
+  encryptFields: ['phone', 'otp', 'email'],
+  decryptFields: ['phone', 'otp'],
+});
+
+const res = await cipher.fetch('https://your-api.com/api/send-otp', {
+  method: 'POST',
+  body: JSON.stringify({ phone: '+998901234567' }),
+});`}</pre>
+              <p className="card-desc" style={{ marginTop: '1rem' }}>
+                Serverda ham shunday — Next.js, Express, Laravel, Django, Go —
+                hamma joyda faqat sozlangan field nomlarini berib qo&apos;yasiz.
+              </p>
+            </section>
+
+            <section className="card" style={{ marginTop: '1.5rem' }}>
               <h3 className="card-title">Endpointlar</h3>
               <p className="card-desc">
                 Har bir so&apos;rovda <code>Authorization: Bearer &lt;apiKey&gt;</code>

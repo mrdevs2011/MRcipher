@@ -1,0 +1,35 @@
+{
+  "name": "mrcipher-sdk",
+  "version": "1.0.0",
+  "description": "Drop-in universal SDK for MRcipher encryption service",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "encryption",
+    "aes-256-gcm",
+    "api",
+    "security",
+    "otp"
+  ],
+  "license": "MIT"
+}

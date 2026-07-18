@@ -19,7 +19,7 @@ SyntaxHighlighter.registerLanguage('php', php);
 SyntaxHighlighter.registerLanguage('bash', bash);
 SyntaxHighlighter.registerLanguage('html', html);
 
-type TemplateKey = 'javascript' | 'python' | 'java' | 'go' | 'php' | 'curl' | 'html';
+type TemplateKey = 'javascript' | 'python' | 'java' | 'go' | 'php' | 'curl' | 'html' | 'sdk';
 
 interface CodeTemplatesProps {
   serverUrl: string;
@@ -30,6 +30,35 @@ const templates: Record<
   TemplateKey,
   { label: string; language: string; code: (serverUrl: string, apiKey: string) => string }
 > = {
+  sdk: {
+    label: 'Universal SDK',
+    language: 'javascript',
+    code: (url, key) => `// Copy mrcipher-sdk/ folder into your project
+import { MRCipherClient } from './mrcipher-sdk';
+
+const cipher = new MRCipherClient({
+  serverUrl: "${url}",
+  apiKey: "${key}",
+  encryptFields: ["phone", "otp", "email"],
+  decryptFields: ["phone", "otp"],
+});
+
+// Auto-encrypts request fields, auto-decrypts response fields
+const res = await cipher.fetch("https://your-api.com/api/send-otp", {
+  method: "POST",
+  body: JSON.stringify({ phone: "+998901234567" }),
+});
+const data = await res.json();
+
+// React hook
+import { useMRCipher } from './mrcipher-sdk/react';
+const { secureFetch, isLoading, error } = useMRCipher({
+  serverUrl: "${url}",
+  apiKey: "${key}",
+  encryptFields: ["phone", "otp"],
+  decryptFields: ["phone", "otp"],
+});`,
+  },
   javascript: {
     label: 'JavaScript / Node.js',
     language: 'javascript',
@@ -166,10 +195,10 @@ function mr_request($path, $payload) {
   curl: {
     label: 'cURL',
     language: 'bash',
-    code: (url, key) => `curl -X POST ${url}/api/v1/encrypt \\
-  -H "content-type: application/json" \\
-  -H "Authorization: Bearer ${key}" \\
-  -H "origin: ${url}" \\
+    code: (url, key) => `curl -X POST ${url}/api/v1/encrypt \
+  -H "content-type: application/json" \
+  -H "Authorization: Bearer ${key}" \
+  -H "origin: ${url}" \
   -d '{"content":{"email":"user@example.com"}}'`,
   },
   html: {
@@ -201,7 +230,7 @@ async function encrypt(content) {
 };
 
 export function CodeTemplates({ serverUrl, apiKey }: CodeTemplatesProps) {
-  const [active, setActive] = useState<TemplateKey>('javascript');
+  const [active, setActive] = useState<TemplateKey>('sdk');
   const [copied, setCopied] = useState(false);
 
   const activeTemplate = templates[active];
