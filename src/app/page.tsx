@@ -31,6 +31,60 @@ export default function HomePage() {
   const [translatorOutput, setTranslatorOutput] = useState('');
   const [translatorMeta, setTranslatorMeta] = useState<{ latency_ms: number; bytes_in?: number; bytes_out?: number } | null>(null);
   const [translatorLoading, setTranslatorLoading] = useState(false);
+  const [translatorBoundKeyId, setTranslatorBoundKeyId] = useState<'fresh' | string>('fresh');
+  const [translatorBoundRawKey, setTranslatorBoundRawKey] = useState('');
+  const [translatorKeyInput, setTranslatorKeyInput] = useState('');
+  const [translatorKeyBound, setTranslatorKeyBound] = useState(false);
+  const [translatorKeyMemory, setTranslatorKeyMemory] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (freshApiKey) {
+      setTranslatorBoundKeyId('fresh');
+      setTranslatorBoundRawKey(freshApiKey);
+      setTranslatorKeyInput('');
+      setTranslatorKeyBound(true);
+    }
+  }, [freshApiKey]);
+
+  function handleKeySelect(keyId: string) {
+    setTranslatorBoundKeyId(keyId);
+    setError('');
+    if (keyId === 'fresh') {
+      if (freshApiKey) {
+        setTranslatorBoundRawKey(freshApiKey);
+        setTranslatorKeyBound(true);
+        setTranslatorKeyInput('');
+      } else {
+        setTranslatorBoundRawKey('');
+        setTranslatorKeyBound(false);
+        setTranslatorKeyInput('');
+      }
+      return;
+    }
+    const remembered = translatorKeyMemory[keyId];
+    if (remembered) {
+      setTranslatorBoundRawKey(remembered);
+      setTranslatorKeyBound(true);
+      setTranslatorKeyInput('');
+    } else {
+      setTranslatorBoundRawKey('');
+      setTranslatorKeyBound(false);
+      setTranslatorKeyInput('');
+    }
+  }
+
+  function bindTranslatorKey() {
+    const raw = translatorKeyInput.trim();
+    if (!raw.startsWith('mr_') || raw.length < 16) {
+      setError('API key "mr_" bilan boshlanishi va to‘g‘ri uzunlikda bo‘lishi kerak.');
+      return;
+    }
+    setTranslatorBoundRawKey(raw);
+    setTranslatorKeyBound(true);
+    setTranslatorKeyMemory((prev) => ({ ...prev, [translatorBoundKeyId]: raw }));
+    setTranslatorKeyInput('');
+    setError('');
+  }
 
   const loadApiKeys = useCallback(async () => {
     setError('');
@@ -290,9 +344,9 @@ export default function HomePage() {
   async function runTranslator() {
     if (!translatorInput.trim()) return;
 
-    const keyToUse = freshApiKey;
+    const keyToUse = translatorBoundRawKey;
     if (!keyToUse) {
-      setError('Translator uchun avval API key yaratishingiz kerak.');
+      setError('Translator uchun API key briktiring: yaratilgan keylardan birini tanlang va uning qiymatini bir marta kiriting.');
       return;
     }
 
@@ -499,6 +553,66 @@ export default function HomePage() {
                 </div>
               </div>
 
+              <div style={{ marginBottom: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <label className="block" style={{ marginBottom: 0, flex: '1 1 240px' }}>
+                  API key
+                  <select
+                    className="input"
+                    value={translatorBoundKeyId}
+                    onChange={(e) => handleKeySelect(e.target.value)}
+                  >
+                    <option value="fresh">
+                      Yangi yaratilgan key {freshApiKey ? `· mr_···${freshApiKey.slice(-4)}` : '(mavjud emas)'}
+                    </option>
+                    {apiKeys
+                      .filter((key) => !key.revoked)
+                      .map((key) => (
+                        <option key={key.id} value={key.id}>
+                          {key.name} · mr_····{key.prefix}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+
+                {translatorBoundKeyId !== 'fresh' && !translatorKeyBound && (
+                  <div style={{ flex: '2 1 320px', display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                    <label className="block" style={{ marginBottom: 0, flex: 1 }}>
+                      Kalit qiymatini kiriting
+                      <input
+                        type="text"
+                        className="input"
+                        value={translatorKeyInput}
+                        onChange={(e) => setTranslatorKeyInput(e.target.value)}
+                        placeholder="mr_..."
+                      />
+                    </label>
+                    <button
+                      className="btn btn-primary"
+                      onClick={bindTranslatorKey}
+                      disabled={!translatorKeyInput.trim()}
+                    >
+                      Briktirish
+                    </button>
+                  </div>
+                )}
+
+                {translatorKeyBound && (
+                  <div className="key-meta" style={{ alignSelf: 'center', marginTop: '1.55rem' }}>
+                    <span style={{ color: 'var(--success)' }}>
+                      ✓ Briktirilgan · mr_···{translatorBoundRawKey.slice(-4)}
+                    </span>
+                  </div>
+                )}
+
+                {translatorBoundKeyId === 'fresh' && !freshApiKey && (
+                  <div className="key-meta" style={{ alignSelf: 'center', marginTop: '1.55rem' }}>
+                    <span style={{ color: 'var(--warning)' }}>
+                      ⚠ Yangi key yaratib, uni nusxa oling
+                    </span>
+                  </div>
+                )}
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '1rem', alignItems: 'stretch' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <label className="block" style={{ marginBottom: 0 }}>
@@ -569,11 +683,6 @@ export default function HomePage() {
                 </div>
               )}
 
-              {freshApiKey && (
-                <div className="input-hint" style={{ marginTop: '0.5rem' }}>
-                  Faqat yangi yaratilgan API key bilan ishlaydi: mr_···{freshApiKey.slice(-4)}
-                </div>
-              )}
             </section>
 
             <section className="card" style={{ marginBottom: '1.25rem' }}>
