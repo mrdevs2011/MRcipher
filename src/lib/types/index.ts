@@ -32,10 +32,16 @@ export interface UserDoc {
   last_seen_at?: Timestamp | string;
 }
 
+/** Per-user UI preferences stored in Firestore. */
+export interface UserPreferenceDoc {
+  uid: string;
+  selected_api_key_id?: 'fresh' | string;
+  updated_at: Timestamp | string;
+}
+
 /**
  * Firestore document stored in the `api_keys` collection.
- * The raw API key is never stored; only its SHA-256 hash and a prefix
- * for display purposes are kept.
+ * Raw API keys are stored 1:1 so they can be rebound automatically in the UI.
  */
 export type ApiKeyScope = 'encrypt' | 'decrypt' | 'health' | 'usage';
 

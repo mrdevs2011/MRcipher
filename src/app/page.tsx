@@ -27,6 +27,7 @@ export default function HomePage() {
   const [newKeyIps, setNewKeyIps] = useState('');
   const [newKeyScopes, setNewKeyScopes] = useState<Record<string, boolean>>({});
   const [freshApiKey, setFreshApiKey] = useState('');
+  const [freshApiKeyId, setFreshApiKeyId] = useState('');
   const [apiKeyLoading, setApiKeyLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
@@ -46,11 +47,10 @@ export default function HomePage() {
   const [translatorBoundRawKey, setTranslatorBoundRawKey] = useState('');
 
   useEffect(() => {
-    if (freshApiKey) {
-      setTranslatorBoundKeyId('fresh');
-      setTranslatorBoundRawKey(freshApiKey);
+    if (freshApiKey && freshApiKeyId) {
+      setTranslatorBoundKeyId(freshApiKeyId);
     }
-  }, [freshApiKey]);
+  }, [freshApiKey, freshApiKeyId]);
 
   useEffect(() => {
     if (translatorBoundKeyId === 'fresh') {
@@ -61,9 +61,30 @@ export default function HomePage() {
     setTranslatorBoundRawKey(selected?.raw_key || '');
   }, [translatorBoundKeyId, apiKeys, freshApiKey]);
 
-  function handleKeySelect(keyId: string) {
+  async function saveUserPreferenceState(keyId: 'fresh' | string) {
+    if (!user) return;
+    try {
+      const freshToken = await refreshIdToken();
+      if (!freshToken) return;
+
+      await fetch('/api/v1/preferences', {
+        method: 'PATCH',
+        headers: {
+          'content-type': 'application/json',
+          Authorization: `Bearer ${freshToken}`,
+          origin: typeof window !== 'undefined' ? window.location.origin : '',
+        },
+        body: JSON.stringify({ selected_api_key_id: keyId }),
+      });
+    } catch {
+      // Preferensiyani saqlash muvaffaqiyatsiz bo‘lsa UI bloklanmasin.
+    }
+  }
+
+  function handleKeySelect(keyId: 'fresh' | string) {
     setTranslatorBoundKeyId(keyId);
     setError('');
+    void saveUserPreferenceState(keyId);
   }
 
   const loadApiKeys = useCallback(async () => {
@@ -89,15 +110,47 @@ export default function HomePage() {
         return;
       }
 
-      setApiKeys(json.data.keys ?? []);
+      const keys = (json.data.keys ?? []) as ApiKeyPublicView[];
+      setApiKeys(keys);
+
+      // Firebase'da saqlangan translator keyini yuklab, topilmasa birinchi keyga tushamiz.
+      try {
+        const prefRes = await fetch('/api/v1/preferences', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${freshToken}`,
+            origin: typeof window !== 'undefined' ? window.location.origin : '',
+          },
+        });
+        if (prefRes.ok) {
+          const prefJson = await prefRes.json();
+          const savedId = prefJson.data?.preference?.selected_api_key_id as string | undefined;
+          const firstKey = keys.find((k) => !k.revoked);
+          let resolved: 'fresh' | string = firstKey?.id ?? 'fresh';
+          if (savedId === 'fresh') {
+            resolved = freshApiKey ? 'fresh' : (firstKey?.id ?? 'fresh');
+          } else if (savedId && keys.some((k) => k.id === savedId && !k.revoked)) {
+            resolved = savedId;
+          }
+          setTranslatorBoundKeyId(resolved);
+        }
+      } catch {
+        // Preferensiyani yuklashda xatolik bo‘lsa faqat keylar ro‘yxati ko‘rsatiladi.
+      }
     } catch (err) {
       setError('Tarmoq xatosi: API keylar ro\'yxati yuklanmadi');
     }
-  }, [refreshIdToken]);
+  }, [refreshIdToken, freshApiKey]);
 
   useEffect(() => {
     if (user) {
       loadApiKeys();
+    } else {
+      // Logout bo‘lganda state tozalanadi, keyingi foydalanuvchi eski ma’lumotlarni ko‘rmaydi.
+      setApiKeys([]);
+      setFreshApiKey('');
+      setFreshApiKeyId('');
+      setTranslatorBoundKeyId('fresh');
     }
   }, [user, loadApiKeys]);
 
@@ -109,6 +162,7 @@ export default function HomePage() {
     setNewKeyIps('');
     setNewKeyScopes({});
     setFreshApiKey('');
+    setFreshApiKeyId('');
     setError('');
   }
 
@@ -164,12 +218,19 @@ export default function HomePage() {
         return;
       }
 
-      setFreshApiKey(json.data.apiKey);
+      const createdKeyId = json.data.key?.id as string | undefined;
+      const createdRawKey = json.data.apiKey as string | undefined;
+      if (createdRawKey) setFreshApiKey(createdRawKey);
+      if (createdKeyId) setFreshApiKeyId(createdKeyId);
       setNewKeyName('');
       setNewKeyOrigins('');
       setNewKeyIps('');
       setNewKeyScopes({});
       await loadApiKeys();
+      if (createdKeyId) {
+        setTranslatorBoundKeyId(createdKeyId);
+        void saveUserPreferenceState(createdKeyId);
+      }
     } catch (err) {
       setError('Tarmoq xatosi: API key yaratilmadi');
     } finally {

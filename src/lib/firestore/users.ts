@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto';
 import { getDb } from '../firebase';
-import { COLLECTION_USERS, COLLECTION_API_KEYS } from '../config';
-import { UserDoc, ApiKeyDoc, ApiKeyPublicView } from '../types';
+import { COLLECTION_USERS, COLLECTION_API_KEYS, COLLECTION_USER_PREFERENCES } from '../config';
+import { UserDoc, ApiKeyDoc, ApiKeyPublicView, UserPreferenceDoc } from '../types';
 
 /**
  * Create or update a user document in Firestore.
@@ -225,6 +225,39 @@ function normalizeScopes(scopes?: string[]): string[] | undefined {
   return scopes
     .map((s) => s.trim().toLowerCase())
     .filter((s) => valid.has(s));
+}
+
+/**
+ * Save the translator's selected API key ID for a user.
+ */
+export async function saveUserPreference(
+  uid: string,
+  selected_api_key_id: 'fresh' | string,
+): Promise<void> {
+  const docRef = getDb().collection(COLLECTION_USER_PREFERENCES).doc(uid);
+  await docRef.set(
+    {
+      uid,
+      selected_api_key_id,
+      updated_at: new Date().toISOString(),
+    },
+    { merge: true },
+  );
+}
+
+/**
+ * Load the translator's selected API key ID for a user.
+ */
+export async function getUserPreference(
+  uid: string,
+): Promise<UserPreferenceDoc | null> {
+  const doc = await getDb().collection(COLLECTION_USER_PREFERENCES).doc(uid).get();
+  if (!doc.exists) return null;
+  const data = doc.data() as UserPreferenceDoc;
+  return {
+    ...data,
+    uid,
+  };
 }
 
 /**
