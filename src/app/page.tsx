@@ -5,15 +5,11 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { Logo } from '@/components/Logo';
 
 export default function HomePage() {
-  const { user, loading, idToken, signInWithGoogle, logout, refreshIdToken } = useAuth();
-  const [domain, setDomain] = useState('https://mrcipher.vercel.app');
-  const [payload, setPayload] = useState(
-    '{"email":"user@example.com","ssn":"123-45-6789"}',
-  );
+  const { user, loading, signInWithGoogle, logout, refreshIdToken } = useAuth();
   const [apiKey, setApiKey] = useState('');
-  const [curl, setCurl] = useState('');
   const [apiKeyLoading, setApiKeyLoading] = useState(false);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
 
   async function fetchApiKey() {
     setApiKeyLoading(true);
@@ -51,22 +47,12 @@ export default function HomePage() {
     }
   }
 
-  function generateCurl() {
-    if (!apiKey) {
-      setCurl('Iltimos, avval API key oling.');
-      return;
-    }
-
-    if (!domain) {
-      setCurl('Iltimos, domen maydonini toldiring.');
-      return;
-    }
-
-    const url = `${domain.replace(/\/$/, '')}/api/v1/encrypt`;
-    const origin = typeof window !== 'undefined' ? window.location.origin : domain;
-    const command = `curl -X POST ${url} \\\n  -H "content-type: application/json" \\\n  -H "Authorization: Bearer ${apiKey}" \\\n  -H "origin: ${origin}" \\\n  -d '{"content":${payload}}'`;
-
-    setCurl(command);
+  function copyApiKey() {
+    if (!apiKey) return;
+    navigator.clipboard.writeText(apiKey).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   }
 
   if (loading) {
@@ -133,15 +119,15 @@ export default function HomePage() {
             <h3 className="card-title">API-first</h3>
             <p className="card-desc">
               Faqat 2 endpoint: <code>/encrypt</code> va <code>/decrypt</code>.
-              Curl, Postman yoki har qanday HTTP mijoz bilan ishlaydi.
+              Har qanday dasturlash tilidan ishlatish oson.
             </p>
           </div>
           <div className="card">
             <div className="feature-icon">🛡️</div>
             <h3 className="card-title">Google Sign-In</h3>
             <p className="card-desc">
-              Avval Google bilan kiring, keyin API key oling. Har bir so&apos;rovda
-              shu API key ni Authorization sarlavhasida yuboring.
+              Avval Google bilan kiring, keyin API key oling. So&apos;rovlaringizni
+              shu API key bilan himoyalang.
             </p>
           </div>
         </section>
@@ -181,13 +167,13 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="generator">
+        <section style={{ margin: '2rem 0' }}>
           {!user ? (
             <div className="card empty-state">
               <h2>API key olish</h2>
               <p>
-                API key yaratish va curl generator dan foydalanish uchun
-                avval Google bilan kiring.
+                Yangi API key yaratish uchun avval Google hisobingiz bilan
+                kiring.
               </p>
               <button className="btn btn-primary" onClick={signInWithGoogle}>
                 Google bilan kirish
@@ -204,7 +190,9 @@ export default function HomePage() {
               <h3 className="card-title mb-1">API key</h3>
               <p className="card-desc">
                 Google hisobingiz bilan kiringandan keyin yangi API key
-                yarating. Bu keyni kod yoki curl so&apos;rovlariga qo&apos;shasiz.
+                yarating. Bu keyni dasturingizga qo&apos;shing va har bir so&apos;rovda
+                <code>Authorization: Bearer &lt;apiKey&gt;</code> sarlavhasida
+                yuboring.
               </p>
 
               {!apiKey ? (
@@ -243,6 +231,21 @@ export default function HomePage() {
                   >
                     {apiKey}
                   </code>
+                  <button
+                    onClick={copyApiKey}
+                    style={{
+                      marginTop: '0.75rem',
+                      padding: '0.375rem 0.75rem',
+                      background: copied ? 'var(--success)' : 'var(--bg-input)',
+                      color: copied ? '#020617' : 'var(--text)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    {copied ? 'Nusxa olindi!' : 'Nusxa olish'}
+                  </button>
                 </div>
               )}
 
@@ -250,53 +253,6 @@ export default function HomePage() {
                 <p style={{ color: 'var(--danger)', marginTop: '0.75rem' }}>
                   {error}
                 </p>
-              )}
-
-              <h3 className="card-title mb-1" style={{ marginTop: '1.5rem' }}>
-                Curl generator
-              </h3>
-              <p className="card-desc">
-                Domen va shifrlamoqchi malumotingizni kiriting, biz tayyor curl
-                buyruqni yaratib beramiz.
-              </p>
-
-              <div className="generator-grid">
-                <label className="block">
-                  Saytingiz domeni
-                  <input
-                    type="text"
-                    className="input"
-                    value={domain}
-                    onChange={(e) => setDomain(e.target.value)}
-                    placeholder="https://mrcipher.vercel.app"
-                  />
-                </label>
-
-                <label className="block">
-                  Shifrlamoqchi malumot (JSON shaklida)
-                  <textarea
-                    className="textarea"
-                    value={payload}
-                    onChange={(e) => setPayload(e.target.value)}
-                    rows={4}
-                    placeholder='{"email":"user@example.com","ssn":"123-45-6789"}'
-                  />
-                </label>
-
-                <button className="btn btn-primary" onClick={generateCurl}>
-                  Next
-                </button>
-              </div>
-
-              {curl && (
-                <div className="mt-2">
-                  <h3 className="card-title">Tayyor curl buyruqi</h3>
-                  <p className="card-desc">
-                    Ushbu API key ni maxfiy saqlang. Agar unutilsa, yangi key
-                    olish kerak bo&apos;ladi.
-                  </p>
-                  <pre className="code-block">{curl}</pre>
-                </div>
               )}
             </div>
           )}
