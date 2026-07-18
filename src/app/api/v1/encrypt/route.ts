@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { GLOBAL_ALLOWED_ORIGINS } from '@/lib/env';
 import { encrypt } from '@/lib/crypto/encryption';
-import { authenticateRequest } from '@/lib/middleware/firebaseAuth';
+import { authenticateRequest } from '@/lib/middleware/apiKeyAuth';
 import { applyCorsHeaders, getOriginHeader } from '@/lib/middleware/cors';
 import { logUsage } from '@/lib/firestore/logs';
 import { ApiError } from '@/lib/utils/errors';
@@ -18,8 +18,8 @@ import {
  * Encrypts any JSON-serializable payload using AES-256-GCM.
  *
  * Headers:
- *   Authorization: Bearer <firebase-id-token>  (required)
- *   origin                                      (required for cross-origin browser requests)
+ *   Authorization: Bearer <apiKey>  (required)
+ *   origin                         (required for cross-origin browser requests)
  *
  * Body:
  *   {

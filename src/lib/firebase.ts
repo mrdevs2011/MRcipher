@@ -1,5 +1,6 @@
 import { getApps, initializeApp, cert, App, ServiceAccount } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 import {
   FIREBASE_SERVICE_ACCOUNT_JSON,
   FIREBASE_PROJECT_ID,
@@ -15,7 +16,7 @@ let app: App | undefined;
  * Deferring initialization avoids requiring live credentials at build time
  * and allows the same module to be safely imported in tests with mocked env vars.
  */
-function getApp(): App {
+function getFirebaseAdminApp(): App {
   if (app) return app;
 
   if (getApps().length > 0) {
@@ -56,6 +57,8 @@ function getApp(): App {
   return app;
 }
 
+export { getFirebaseAdminApp };
+
 let dbInstance: Firestore | undefined;
 
 /**
@@ -63,9 +66,20 @@ let dbInstance: Firestore | undefined;
  */
 export function getDb(): Firestore {
   if (!dbInstance) {
-    dbInstance = getFirestore(getApp());
+    dbInstance = getFirestore(getFirebaseAdminApp());
   }
   return dbInstance;
+}
+
+/**
+ * Lazily initialize and return the Firebase Admin Auth instance.
+ *
+ * This guarantees the Admin app is initialized before getAuth() is called,
+ * which avoids the "default Firebase app does not exist" error in serverless
+ * environments where the module load order is unpredictable.
+ */
+export function getAuthInstance() {
+  return getAuth(getFirebaseAdminApp());
 }
 
 export { FieldValue, Timestamp } from 'firebase-admin/firestore';

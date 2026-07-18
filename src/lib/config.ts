@@ -30,6 +30,7 @@ export const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
 export const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY;
 
 export const COLLECTION_API_KEYS = 'api_keys';
+export const COLLECTION_USERS = 'users';
 export const COLLECTION_LOGS = 'logs';
 
 export const AES_GCM_IV_LENGTH = 16;

@@ -10,17 +10,50 @@ export default function HomePage() {
   const [payload, setPayload] = useState(
     '{"email":"user@example.com","ssn":"123-45-6789"}',
   );
+  const [apiKey, setApiKey] = useState('');
   const [curl, setCurl] = useState('');
+  const [apiKeyLoading, setApiKeyLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  async function generateCurl() {
-    if (!user || !idToken) {
-      setCurl('Iltimos, avval Google hisobingiz bilan kiring.');
-      return;
+  async function fetchApiKey() {
+    setApiKeyLoading(true);
+    setError('');
+
+    try {
+      const freshToken = await refreshIdToken();
+      if (!freshToken) {
+        setError('ID token topilmadi, qayta kiring.');
+        setApiKeyLoading(false);
+        return;
+      }
+
+      const res = await fetch('/api/v1/keys', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          Authorization: `Bearer ${freshToken}`,
+          origin: typeof window !== 'undefined' ? window.location.origin : '',
+        },
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error?.message || 'API key olishda xatolik');
+        setApiKeyLoading(false);
+        return;
+      }
+
+      setApiKey(json.data.apiKey);
+    } catch (err) {
+      setError('Tarmoq xatosi: API key olinmadi');
+    } finally {
+      setApiKeyLoading(false);
     }
+  }
 
-    const freshToken = await refreshIdToken();
-    if (!freshToken) {
-      setCurl('ID tokenni yangilash muvaffaqiyatsiz boldi, qayta kiring.');
+  function generateCurl() {
+    if (!apiKey) {
+      setCurl('Iltimos, avval API key oling.');
       return;
     }
 
@@ -31,7 +64,7 @@ export default function HomePage() {
 
     const url = `${domain.replace(/\/$/, '')}/api/v1/encrypt`;
     const origin = typeof window !== 'undefined' ? window.location.origin : domain;
-    const command = `curl -X POST ${url} \\\n  -H "content-type: application/json" \\\n  -H "Authorization: Bearer ${freshToken}" \\\n  -H "origin: ${origin}" \\\n  -d '{"content":${payload}}'`;
+    const command = `curl -X POST ${url} \\\n  -H "content-type: application/json" \\\n  -H "Authorization: Bearer ${apiKey}" \\\n  -H "origin: ${origin}" \\\n  -d '{"content":${payload}}'`;
 
     setCurl(command);
   }
@@ -84,11 +117,6 @@ export default function HomePage() {
             malumotlaringizni har qanday dasturlash tilidan yuboring, biz uni
             xavfsiz shifrlab qaytarib beramiz.
           </p>
-          {!user && (
-            <button className="btn btn-primary" onClick={signInWithGoogle}>
-              Google bilan boshlash
-            </button>
-          )}
         </section>
 
         <section className="grid-3">
@@ -112,8 +140,8 @@ export default function HomePage() {
             <div className="feature-icon">🛡️</div>
             <h3 className="card-title">Google Sign-In</h3>
             <p className="card-desc">
-              API kalitlari yoq. Faqat Google hisobingiz bilan kiring va har bir
-              sorovga ID token yuboring.
+              Avval Google bilan kiring, keyin API key oling. Har bir so&apos;rovda
+              shu API key ni Authorization sarlavhasida yuboring.
             </p>
           </div>
         </section>
@@ -122,10 +150,15 @@ export default function HomePage() {
           <div className="card">
             <h3 className="card-title">Endpointlar</h3>
             <p className="card-desc">
-              Quyidagi endpointlarga <code>Authorization: Bearer &lt;idToken&gt;</code>{' '}
-              sarlavhasi bilan sorov yuboring.
+              Quyidagi endpointlarga{' '}
+              <code>Authorization: Bearer &lt;apiKey&gt;</code> sarlavhasi bilan
+              so&apos;rov yuboring.
             </p>
             <ul className="text-muted" style={{ lineHeight: 1.8 }}>
+              <li>
+                <code>POST /api/v1/keys</code> — yangi API key yaratish (Google
+                token bilan)
+              </li>
               <li>
                 <code>POST /api/v1/encrypt</code> — JSON qiymatni shifrlash
               </li>
@@ -151,10 +184,10 @@ export default function HomePage() {
         <section className="generator">
           {!user ? (
             <div className="card empty-state">
-              <h2>Curl generator</h2>
+              <h2>API key olish</h2>
               <p>
-                Tayyor curl buyruqlarini yaratish uchun avval Google bilan
-                kiring.
+                API key yaratish va curl generator dan foydalanish uchun
+                avval Google bilan kiring.
               </p>
               <button className="btn btn-primary" onClick={signInWithGoogle}>
                 Google bilan kirish
@@ -164,21 +197,64 @@ export default function HomePage() {
             <div className="card">
               <div className="auth-bar">
                 <p>
-                  <span className="email">{user.email}</span> sifatida test
-                  sorovi yaratish
+                  <span className="email">{user.email}</span> sifatida ishlash
                 </p>
-                <button
-                  className="btn btn-secondary"
-                  onClick={async () => {
-                    await refreshIdToken();
-                    setCurl('');
-                  }}
-                >
-                  Tokenni yangilash
-                </button>
               </div>
 
-              <h3 className="card-title mb-1">Curl generator</h3>
+              <h3 className="card-title mb-1">API key</h3>
+              <p className="card-desc">
+                Google hisobingiz bilan kiringandan keyin yangi API key
+                yarating. Bu keyni kod yoki curl so&apos;rovlariga qo&apos;shasiz.
+              </p>
+
+              {!apiKey ? (
+                <button
+                  className="btn btn-primary"
+                  onClick={fetchApiKey}
+                  disabled={apiKeyLoading}
+                >
+                  {apiKeyLoading ? 'Yaratilmoqda...' : 'API key olish'}
+                </button>
+              ) : (
+                <div
+                  style={{
+                    background: '#020617',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)',
+                    padding: '1rem',
+                    marginBottom: '1rem',
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: '0 0 0.5rem',
+                      fontSize: '0.875rem',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    Sizning API key ingiz (faqat bir marta ko&apos;rsatiladi):
+                  </p>
+                  <code
+                    style={{
+                      wordBreak: 'break-all',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    {apiKey}
+                  </code>
+                </div>
+              )}
+
+              {error && (
+                <p style={{ color: 'var(--danger)', marginTop: '0.75rem' }}>
+                  {error}
+                </p>
+              )}
+
+              <h3 className="card-title mb-1" style={{ marginTop: '1.5rem' }}>
+                Curl generator
+              </h3>
               <p className="card-desc">
                 Domen va shifrlamoqchi malumotingizni kiriting, biz tayyor curl
                 buyruqni yaratib beramiz.
@@ -216,8 +292,8 @@ export default function HomePage() {
                 <div className="mt-2">
                   <h3 className="card-title">Tayyor curl buyruqi</h3>
                   <p className="card-desc">
-                    ID token 1 soatdan keyin eskiradi, har safar yangi sorov
-                    yaratish shart.
+                    Ushbu API key ni maxfiy saqlang. Agar unutilsa, yangi key
+                    olish kerak bo&apos;ladi.
                   </p>
                   <pre className="code-block">{curl}</pre>
                 </div>

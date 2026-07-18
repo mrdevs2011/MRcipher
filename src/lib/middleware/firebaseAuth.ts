@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
+import { getAuthInstance } from '../firebase';
 import { ApiError } from '../utils/errors';
 import { AuthenticatedUser } from '../types';
 
@@ -47,7 +47,7 @@ export async function authenticateRequest(
   }
 
   try {
-    const decoded = await getAuth().verifyIdToken(idToken);
+    const decoded = await getAuthInstance().verifyIdToken(idToken);
     return { uid: decoded.uid, email: decoded.email ?? undefined };
   } catch (error) {
     console.error('verifyIdToken failed:', error);

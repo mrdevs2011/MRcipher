@@ -33,13 +33,19 @@ export interface AuthenticatedUser {
   email?: string;
 }
 
-/** Firestore document stored in the `users` collection (optional). */
+/**
+ * Firestore document stored in the `users` collection.
+ * The API key itself is never stored; only its SHA-256 hash and a prefix
+ * for display purposes are kept.
+ */
 export interface UserDoc {
   uid: string;
   email?: string;
   display_name?: string;
-  created_at: Timestamp;
-  last_seen_at?: Timestamp;
+  api_key_hash: string;
+  api_key_prefix: string;
+  created_at: Timestamp | string;
+  last_seen_at?: Timestamp | string;
 }
 
 /** Input used when writing a usage log entry. */
@@ -53,9 +59,4 @@ export interface UsageLogDocInput {
   error_message?: string;
   origin?: string;
   ip?: string;
-}
-
-/** Result returned by the authentication layer. */
-export interface AuthenticatedApiKey {
-  apiKeyDoc: never;
 }
