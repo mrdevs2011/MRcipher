@@ -19,7 +19,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "api_key_hash",
+          "fieldPath": "api_key_raw",
           "order": "ASCENDING"
         },
         {

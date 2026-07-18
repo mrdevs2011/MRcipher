@@ -124,6 +124,7 @@ export async function updateApiKey(
 
 /**
  * List all API keys for a given user. Raw keys are returned so they can be rebound in the UI.
+ */
 export async function listApiKeysByUser(
   uid: string,
 ): Promise<ApiKeyPublicView[]> {
