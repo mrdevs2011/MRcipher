@@ -616,27 +616,40 @@
       const raw = data.text;
       const cached = decryptedCache.get(doc.id);
 
-      if (cached && JSON.stringify(raw) === JSON.stringify(cached.raw)) {
+      // Agar ma'lumot o'zgarmagan va allaqachon ochilgan bo'lsa, keshdan qaytamiz.
+      if (
+        cached &&
+        JSON.stringify(raw) === JSON.stringify(cached.raw) &&
+        cached.plain !== '[ochilmoqda...]'
+      ) {
         return cached;
       }
 
+      const base = {
+        from: data.from,
+        raw,
+        createdAt: data.createdAt,
+        time: formatTime(data.createdAt),
+        docPath: doc.ref.path,
+      };
+
       if (!isEncryptedPayload(raw)) {
-        const plain = { plain: raw, latency: null, raw };
-        decryptedCache.set(doc.id, plain);
-        return plain;
+        const entry = { ...base, plain: raw, latency: null };
+        decryptedCache.set(doc.id, entry);
+        return entry;
       }
 
       const start = performance.now();
       try {
         const result = await decrypt(raw);
         const latency = Math.round(performance.now() - start);
-        const entry = { plain: result.data, latency, raw };
+        const entry = { ...base, plain: result.data, latency };
         decryptedCache.set(doc.id, entry);
         log(`Decrypt: ${doc.ref.path} → plaintext (${latency}ms)`, 'ok');
         setFlow(6);
         return entry;
       } catch (err) {
-        const entry = { plain: '[shifrni ochib bo‘lmadi]', latency: null, raw };
+        const entry = { ...base, plain: '[shifrni ochib bo‘lmadi]', latency: null };
         decryptedCache.set(doc.id, entry);
         log('Decrypt xatosi: ' + err.message, 'err');
         return entry;
@@ -679,25 +692,16 @@
         const time = formatTime(data.createdAt);
         const metaChanged = !cached || time !== cached?.time;
 
-        decryptedCache.set(doc.id, {
-          from: data.from,
-          raw: data.text,
-          createdAt: data.createdAt,
-          time,
-          docPath: doc.ref.path,
-          plain: cached?.plain ?? '[ochilmoqda...]',
-          latency: cached?.latency ?? null,
-        });
-
-        if (rawChanged) {
-          getDecryptedMessage(doc).then(() => {
-            renderAllMessages();
-          });
-        }
-
         if (rawChanged || metaChanged) {
           changed = true;
         }
+
+        // Har bir hujjat uchun decrypt qilamiz; kesh tekshiruvi ortiqcha so'rovlarni oldini oladi.
+        getDecryptedMessage(doc).then(() => {
+          if (changed) {
+            renderAllMessages();
+          }
+        });
       }
 
       if (changed) {
