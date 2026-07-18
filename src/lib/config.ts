@@ -38,6 +38,16 @@ export const AES_GCM_TAG_LENGTH = 16;
 export const AES_KEY_SIZE = 32;
 
 /**
+ * Maximum request body size for encrypt/decrypt endpoints.
+ * 512 KiB is enough for large JSON payloads while protecting serverless memory.
+ */
+export const MAX_REQUEST_BODY_BYTES = 512 * 1024;
+
+/** Valid API keys start with this prefix and are at least 16 characters long. */
+export const API_KEY_PREFIX = 'mr_';
+export const API_KEY_MIN_LENGTH = 16;
+
+/**
  * Generate a deterministic 256-bit encryption key for a given user/context
  * by combining the master key with a public salt. This avoids storing
  * per-user keys in the database while keeping each user's data isolated.

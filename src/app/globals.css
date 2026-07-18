@@ -477,6 +477,29 @@ label.block {
   color: var(--text-dim);
 }
 
+.scope-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.scope-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.scope-checkbox input {
+  accent-color: var(--primary);
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
 .key-empty {
   text-align: center;
   padding: 2rem;

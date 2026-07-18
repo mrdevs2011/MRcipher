@@ -17,6 +17,10 @@ import {
   successResponse,
 } from '@/lib/utils/response';
 import { GLOBAL_ALLOWED_ORIGINS } from '@/lib/env';
+import {
+  assertBodySizeAllowed,
+  assertJsonContentType,
+} from '@/lib/utils/validation';
 
 /**
  * GET /api/v1/keys
@@ -71,17 +75,23 @@ import { GLOBAL_ALLOWED_ORIGINS } from '@/lib/env';
  * Permanently deletes an API key. Only the owner can delete their own key.
  */
 
+const SCOPE_VALUES = ['encrypt', 'decrypt', 'health', 'usage'] as const;
+
 const createKeySchema = z.object({
   name: z
     .string()
     .min(1, 'API key nomi kiritilishi shart')
     .max(100, 'API key nomi 100 ta belgidan oshmasligi kerak'),
   allowed_origins: z.array(z.string()).max(10).optional(),
+  allowed_ips: z.array(z.string()).max(10).optional(),
+  scopes: z.array(z.enum(SCOPE_VALUES)).max(4).optional(),
 });
 
 const updateKeySchema = z.object({
   name: z.string().min(1).max(100).optional(),
   allowed_origins: z.array(z.string()).max(10).optional(),
+  allowed_ips: z.array(z.string()).max(10).optional(),
+  scopes: z.array(z.enum(SCOPE_VALUES)).max(4).optional(),
 });
 
 async function verifyIdTokenFromHeader(
@@ -162,6 +172,9 @@ export async function POST(req: NextRequest) {
   const origin = getOriginHeader(req);
 
   try {
+    assertJsonContentType(req);
+    assertBodySizeAllowed(req);
+
     const { uid, email, name } = await verifyIdTokenFromHeader(req);
 
     let body: unknown;
@@ -192,6 +205,8 @@ export async function POST(req: NextRequest) {
       email,
       name: parsed.data.name,
       allowedOrigins: parsed.data.allowed_origins,
+      allowedIps: parsed.data.allowed_ips,
+      scopes: parsed.data.scopes,
     });
 
     const allowedOrigin = origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*';
@@ -223,6 +238,9 @@ export async function PATCH(req: NextRequest) {
   const origin = getOriginHeader(req);
 
   try {
+    assertJsonContentType(req);
+    assertBodySizeAllowed(req);
+
     const { uid } = await verifyIdTokenFromHeader(req);
     const docId = req.nextUrl.searchParams.get('id');
     if (!docId) {
@@ -234,7 +252,7 @@ export async function PATCH(req: NextRequest) {
       body = await req.json();
     } catch {
       throw new ApiError(
-        'Invalid JSON body. Expected: { "name"?: "...", "allowed_origins"?: [...] }',
+        'Invalid JSON body. Expected: { "name"?: "...", "allowed_origins"?: [...], "allowed_ips"?: [...], "scopes"?: [...] }',
         400,
         'VALIDATION_ERROR',
       );
@@ -249,7 +267,12 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const ok = await updateApiKey(uid, docId, parsed.data);
+    const ok = await updateApiKey(uid, docId, {
+      name: parsed.data.name,
+      allowed_origins: parsed.data.allowed_origins,
+      allowed_ips: parsed.data.allowed_ips,
+      scopes: parsed.data.scopes,
+    });
     if (!ok) {
       throw new ApiError(
         'API key not found or you do not have permission to update it',

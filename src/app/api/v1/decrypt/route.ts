@@ -11,6 +11,11 @@ import {
   logServerError,
   successResponse,
 } from '@/lib/utils/response';
+import {
+  assertBodySizeAllowed,
+  assertJsonContentType,
+  assertEncryptedPayload,
+} from '@/lib/utils/validation';
 
 /**
  * POST /api/v1/decrypt
@@ -43,8 +48,15 @@ export async function POST(req: NextRequest) {
   const origin = getOriginHeader(req);
 
   try {
+    assertJsonContentType(req);
+    assertBodySizeAllowed(req);
+
     const body = await req.json();
     const parsed = decryptRequestSchema.safeParse(body);
+
+    if (parsed.success) {
+      assertEncryptedPayload(parsed.data.content);
+    }
 
     if (!parsed.success) {
       throw new ApiError(
@@ -54,7 +66,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { uid, email } = await authenticateRequest(req);
+    const { uid, email } = await authenticateRequest(req, 'decrypt');
     const allowedOrigin = origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*';
 
     const serialized = decrypt(parsed.data.content, uid);

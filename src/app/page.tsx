@@ -11,6 +11,8 @@ export default function HomePage() {
   const [apiKeys, setApiKeys] = useState<ApiKeyPublicView[]>([]);
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyOrigins, setNewKeyOrigins] = useState('');
+  const [newKeyIps, setNewKeyIps] = useState('');
+  const [newKeyScopes, setNewKeyScopes] = useState<Record<string, boolean>>({});
   const [freshApiKey, setFreshApiKey] = useState('');
   const [apiKeyLoading, setApiKeyLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,6 +20,8 @@ export default function HomePage() {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editOrigins, setEditOrigins] = useState('');
+  const [editIps, setEditIps] = useState('');
+  const [editScopes, setEditScopes] = useState<Record<string, boolean>>({});
 
   const loadApiKeys = useCallback(async () => {
     setError('');
@@ -71,6 +75,13 @@ export default function HomePage() {
         .split(/\n|,/)
         .map((o) => o.trim())
         .filter(Boolean);
+      const allowedIps = newKeyIps
+        .split(/\n|,/)
+        .map((ip) => ip.trim())
+        .filter(Boolean);
+      const scopes = Object.entries(newKeyScopes)
+        .filter(([, checked]) => checked)
+        .map(([scope]) => scope);
 
       const res = await fetch('/api/v1/keys', {
         method: 'POST',
@@ -82,6 +93,8 @@ export default function HomePage() {
         body: JSON.stringify({
           name: newKeyName.trim() || 'Nomsiz kalit',
           allowed_origins: allowedOrigins.length > 0 ? allowedOrigins : undefined,
+          allowed_ips: allowedIps.length > 0 ? allowedIps : undefined,
+          scopes: scopes.length > 0 ? scopes : undefined,
         }),
       });
 
@@ -95,6 +108,8 @@ export default function HomePage() {
       setFreshApiKey(json.data.apiKey);
       setNewKeyName('');
       setNewKeyOrigins('');
+      setNewKeyIps('');
+      setNewKeyScopes({});
       await loadApiKeys();
     } catch (err) {
       setError('Tarmoq xatosi: API key yaratilmadi');
@@ -138,12 +153,18 @@ export default function HomePage() {
     setEditingKey(key.id);
     setEditName(key.name);
     setEditOrigins((key.allowed_origins ?? []).join('\n'));
+    setEditIps((key.allowed_ips ?? []).join('\n'));
+    const scopeMap: Record<string, boolean> = {};
+    (key.scopes ?? []).forEach((scope) => { scopeMap[scope] = true; });
+    setEditScopes(scopeMap);
   }
 
   function cancelEdit() {
     setEditingKey(null);
     setEditName('');
     setEditOrigins('');
+    setEditIps('');
+    setEditScopes({});
   }
 
   async function saveEdit(id: string) {
@@ -160,6 +181,13 @@ export default function HomePage() {
         .split(/\n|,/)
         .map((o) => o.trim())
         .filter(Boolean);
+      const allowedIps = editIps
+        .split(/\n|,/)
+        .map((ip) => ip.trim())
+        .filter(Boolean);
+      const scopes = Object.entries(editScopes)
+        .filter(([, checked]) => checked)
+        .map(([scope]) => scope);
 
       const res = await fetch(`/api/v1/keys?id=${encodeURIComponent(id)}`, {
         method: 'PATCH',
@@ -171,6 +199,8 @@ export default function HomePage() {
         body: JSON.stringify({
           name: editName.trim(),
           allowed_origins: allowedOrigins,
+          allowed_ips: allowedIps.length > 0 ? allowedIps : undefined,
+          scopes: scopes.length > 0 ? scopes : undefined,
         }),
       });
 
@@ -183,12 +213,45 @@ export default function HomePage() {
       setEditingKey(null);
       setEditName('');
       setEditOrigins('');
+      setEditIps('');
+      setEditScopes({});
       await loadApiKeys();
     } catch (err) {
       setError('Tarmoq xatosi: API keyni yangilashda xatolik');
     } finally {
       setApiKeyLoading(false);
     }
+  }
+
+  const SCOPE_OPTIONS = ['encrypt', 'decrypt', 'health', 'usage'] as const;
+
+  function toggleScope(
+    setter: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
+    scope: string,
+  ) {
+    setter((prev) => ({ ...prev, [scope]: !prev[scope] }));
+  }
+
+  function renderScopeCheckboxes(
+    values: Record<string, boolean>,
+    setter: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
+    disabled?: boolean,
+  ) {
+    return (
+      <div className="scope-group">
+        {SCOPE_OPTIONS.map((scope) => (
+          <label key={scope} className="scope-checkbox">
+            <input
+              type="checkbox"
+              checked={!!values[scope]}
+              onChange={() => toggleScope(setter, scope)}
+              disabled={disabled}
+            />
+            <span>{scope}</span>
+          </label>
+        ))}
+      </div>
+    );
   }
 
   function copyApiKey() {
@@ -338,6 +401,28 @@ export default function HomePage() {
                 </span>
               </label>
 
+              <label className="block mt-1" style={{ marginBottom: 0 }}>
+                Ruxsat etilgan IP manzillar (ixtiyoriy)
+                <textarea
+                  className="textarea"
+                  rows={2}
+                  value={newKeyIps}
+                  onChange={(e) => setNewKeyIps(e.target.value)}
+                  placeholder="192.168.1.10&#10;10.0.0.0/24"
+                />
+                <span className="input-hint">
+                  Bo&apos;sh qoldirilsa barcha IP larga ruxsat. Har bir qatorda bitta IP yoki CIDR.
+                </span>
+              </label>
+
+              <label className="block mt-1" style={{ marginBottom: 0 }}>
+                Ruxsat etilgan endpointlar (ixtiyoriy)
+                {renderScopeCheckboxes(newKeyScopes, setNewKeyScopes)}
+                <span className="input-hint">
+                  Hech biri tanlanmasa barcha endpointlarga ruxsat.
+                </span>
+              </label>
+
               {freshApiKey && (
                 <div className="secret-box">
                   <div className="secret-label">Yangi API key — faqat bir marta nusxa oling</div>
@@ -408,7 +493,17 @@ export default function HomePage() {
                               value={editOrigins}
                               onChange={(e) => setEditOrigins(e.target.value)}
                               placeholder="https://example.com"
+                              style={{ marginBottom: '0.5rem' }}
                             />
+                            <textarea
+                              className="textarea textarea-sm"
+                              rows={2}
+                              value={editIps}
+                              onChange={(e) => setEditIps(e.target.value)}
+                              placeholder="192.168.1.10"
+                              style={{ marginBottom: '0.5rem' }}
+                            />
+                            {renderScopeCheckboxes(editScopes, setEditScopes)}
                           </>
                         ) : (
                           <>
@@ -419,10 +514,18 @@ export default function HomePage() {
                               {key.last_used_at && (
                                 <span className="key-date">Oxirgi ishlatilgan: {new Date(key.last_used_at).toLocaleDateString('uz-UZ')}</span>
                               )}
+                              {key.scopes && key.scopes.length > 0 && (
+                                <span className="key-date">Scopes: {key.scopes.join(', ')}</span>
+                              )}
                             </div>
                             {key.allowed_origins && key.allowed_origins.length > 0 && (
                               <div className="key-origins">
                                 {key.allowed_origins.join(', ')}
+                              </div>
+                            )}
+                            {key.allowed_ips && key.allowed_ips.length > 0 && (
+                              <div className="key-origins">
+                                IPs: {key.allowed_ips.join(', ')}
                               </div>
                             )}
                           </>

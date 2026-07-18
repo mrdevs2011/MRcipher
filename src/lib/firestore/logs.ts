@@ -1,6 +1,7 @@
 import { getDb } from '../firebase';
 import { COLLECTION_LOGS } from '../config';
-import { UsageLogDocInput } from '../types';
+import { UsageLogDocInput, UsageAggregateDoc } from '../types';
+import { FieldValue } from '../firebase';
 
 /**
  * Best-effort usage logging to Firestore.
@@ -45,8 +46,49 @@ export async function logUsage(entry: UsageLogDocInput): Promise<void> {
       ip: anonymizeIp(entry.ip),
       created_at: new Date().toISOString(),
     });
+
+    // Best-effort aggregate update so /api/v1/usage stays fast.
+    updateUsageAggregate(entry.uid, entry.endpoint, entry.status).catch((err) =>
+      console.error('[MRcipher] Failed to update usage aggregate:', err),
+    );
   } catch (err) {
     // Server-side only; never leak logging failures.
     console.error('[MRcipher] Failed to write usage log:', err);
   }
+}
+
+const COLLECTION_AGGREGATES = 'usage_aggregates';
+
+/**
+ * Increment per-user usage aggregates.
+ *
+ * Firestore counters are updated with FieldValue.increment so concurrent
+ * requests do not race. This is best-effort: failures are logged but never
+ * returned to the client.
+ */
+async function updateUsageAggregate(
+  uid: string,
+  endpoint: UsageLogDocInput['endpoint'],
+  status: UsageLogDocInput['status'],
+): Promise<void> {
+  const now = new Date().toISOString();
+  const ref = getDb().collection(COLLECTION_AGGREGATES).doc(uid);
+
+  const update: Record<string, unknown> = {
+    updated_at: now,
+    last_request_at: now,
+  };
+
+  if (status === 'success') {
+    if (endpoint === 'encrypt') update.total_encrypts = FieldValue.increment(1);
+    if (endpoint === 'decrypt') update.total_decrypts = FieldValue.increment(1);
+    if (endpoint === 'health' || endpoint === 'usage') {
+      // Health checks are counted under a separate field to keep encrypt/decrypt counts meaningful.
+      update.total_health_checks = FieldValue.increment(1);
+    }
+  } else {
+    update.total_errors = FieldValue.increment(1);
+  }
+
+  await ref.set(update, { merge: true });
 }

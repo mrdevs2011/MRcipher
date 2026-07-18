@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
   const allowedOrigin = origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*';
 
   try {
-    const { uid, email } = await authenticateRequest(req);
+    const { uid, email } = await authenticateRequest(req, 'usage');
 
     const rawPeriod = req.nextUrl.searchParams.get('period') ?? 'all';
     const parsed = usageQuerySchema.safeParse({ period: rawPeriod });
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
     logUsage({
       uid,
       email,
-      endpoint: 'health',
+      endpoint: 'usage',
       status: 'success',
       bytes_in: 0,
       bytes_out: 0,
@@ -107,6 +107,7 @@ async function getUsageStats(uid: string, period: string): Promise<UsageStats> {
     return {
       total_encrypts: 0,
       total_decrypts: 0,
+      total_health_checks: 0,
       total_errors: 0,
       last_request_at: undefined,
     };
@@ -115,6 +116,7 @@ async function getUsageStats(uid: string, period: string): Promise<UsageStats> {
   const data = aggregate.data() as {
     total_encrypts?: number;
     total_decrypts?: number;
+    total_health_checks?: number;
     total_errors?: number;
     last_request_at?: FirebaseFirestore.Timestamp | string;
     updated_at?: FirebaseFirestore.Timestamp | string;
@@ -123,6 +125,7 @@ async function getUsageStats(uid: string, period: string): Promise<UsageStats> {
   return {
     total_encrypts: data.total_encrypts ?? 0,
     total_decrypts: data.total_decrypts ?? 0,
+    total_health_checks: data.total_health_checks ?? 0,
     total_errors: data.total_errors ?? 0,
     last_request_at:
       data.last_request_at instanceof Object && 'toDate' in data.last_request_at
@@ -154,6 +157,7 @@ async function fallbackStatsFromLogs(uid: string): Promise<UsageStats> {
   return {
     total_encrypts: encrypts,
     total_decrypts: decrypts,
+    total_health_checks: 0,
     total_errors: 0,
     last_request_at: undefined,
   };

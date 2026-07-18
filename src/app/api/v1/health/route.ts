@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const start = Date.now();
-    const { uid, email } = await authenticateRequest(req);
+    const { uid, email } = await authenticateRequest(req, 'health');
 
     // Lightweight Firestore connectivity probe: count api_keys for this user.
     // This keeps the health endpoint meaningful without touching real data.

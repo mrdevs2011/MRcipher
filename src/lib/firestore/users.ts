@@ -37,16 +37,20 @@ export async function createApiKey(params: {
   email?: string;
   name: string;
   allowedOrigins?: string[];
+  allowedIps?: string[];
+  scopes?: string[];
 }): Promise<{ rawKey: string; publicView: ApiKeyPublicView }> {
-  const { uid, email, name, allowedOrigins } = params;
+  const { uid, email, name, allowedOrigins, allowedIps, scopes } = params;
   const rawKey = generateApiKey();
   const apiKeyHash = hashApiKey(rawKey);
   const apiKeyPrefix = rawKey.slice(-4);
 
   const docRef = getDb().collection(COLLECTION_API_KEYS).doc();
-  const apiKeyDoc: Omit<ApiKeyDoc, 'created_at' | 'allowed_origins'> & {
+  const apiKeyDoc: Omit<ApiKeyDoc, 'created_at' | 'allowed_origins' | 'allowed_ips' | 'scopes'> & {
     created_at: string;
     allowed_origins?: string[];
+    allowed_ips?: string[];
+    scopes?: string[];
   } = {
     uid,
     email,
@@ -58,6 +62,10 @@ export async function createApiKey(params: {
     ...(allowedOrigins && allowedOrigins.length > 0
       ? { allowed_origins: normalizeOrigins(allowedOrigins) }
       : {}),
+    ...(allowedIps && allowedIps.length > 0
+      ? { allowed_ips: normalizeIps(allowedIps) }
+      : {}),
+    ...(scopes && scopes.length > 0 ? { scopes: normalizeScopes(scopes) } : {}),
   };
 
   await docRef.set(apiKeyDoc);
@@ -69,6 +77,8 @@ export async function createApiKey(params: {
     created_at: apiKeyDoc.created_at,
     revoked: false,
     allowed_origins: apiKeyDoc.allowed_origins,
+    allowed_ips: apiKeyDoc.allowed_ips,
+    scopes: apiKeyDoc.scopes as ApiKeyPublicView['scopes'],
   };
 
   return { rawKey, publicView };
@@ -81,7 +91,12 @@ export async function createApiKey(params: {
 export async function updateApiKey(
   uid: string,
   docId: string,
-  updates: { name?: string; allowed_origins?: string[] },
+  updates: {
+    name?: string;
+    allowed_origins?: string[];
+    allowed_ips?: string[];
+    scopes?: string[];
+  },
 ): Promise<boolean> {
   const doc = await getDb().collection(COLLECTION_API_KEYS).doc(docId).get();
   if (!doc.exists) return false;
@@ -93,6 +108,12 @@ export async function updateApiKey(
   if (typeof updates.name === 'string') payload.name = updates.name.trim();
   if (updates.allowed_origins !== undefined) {
     payload.allowed_origins = normalizeOrigins(updates.allowed_origins) ?? [];
+  }
+  if (updates.allowed_ips !== undefined) {
+    payload.allowed_ips = normalizeIps(updates.allowed_ips) ?? [];
+  }
+  if (updates.scopes !== undefined) {
+    payload.scopes = normalizeScopes(updates.scopes) ?? [];
   }
 
   if (Object.keys(payload).length === 0) return true;
@@ -130,17 +151,26 @@ export async function listApiKeysByUser(
         : undefined,
       revoked: data.revoked ?? false,
       allowed_origins: data.allowed_origins,
+      allowed_ips: data.allowed_ips,
+      scopes: data.scopes as ApiKeyPublicView['scopes'],
     };
   });
 }
 
 /**
- * Find the user UID and allowed origins associated with an API key by its hash.
+ * Find the user UID and access control details associated with an API key by its hash.
  */
 export async function findUserByApiKey(
   apiKey: string,
 ): Promise<
-  { uid: string; email?: string; docId: string; allowed_origins?: string[] } | null
+  {
+    uid: string;
+    email?: string;
+    docId: string;
+    allowed_origins?: string[];
+    allowed_ips?: string[];
+    scopes?: ApiKeyDoc['scopes'];
+  } | null
 > {
   const hash = hashApiKey(apiKey);
 
@@ -166,6 +196,8 @@ export async function findUserByApiKey(
     email: data.email,
     docId: doc.id,
     allowed_origins: normalizeOrigins(data.allowed_origins),
+    allowed_ips: normalizeIps(data.allowed_ips),
+    scopes: data.scopes,
   };
 }
 
@@ -181,6 +213,19 @@ function normalizeOrigins(origins?: string[]): string[] | undefined {
       }
     })
     .filter(Boolean);
+}
+
+function normalizeIps(ips?: string[]): string[] | undefined {
+  if (!ips || ips.length === 0) return undefined;
+  return ips.map((ip) => ip.trim()).filter(Boolean);
+}
+
+function normalizeScopes(scopes?: string[]): string[] | undefined {
+  if (!scopes || scopes.length === 0) return undefined;
+  const valid = new Set(['encrypt', 'decrypt', 'health', 'usage']);
+  return scopes
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => valid.has(s));
 }
 
 /**

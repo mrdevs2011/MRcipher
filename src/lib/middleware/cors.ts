@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GLOBAL_ALLOWED_ORIGINS } from '../env';
+import { applySecurityHeaders } from './security';
 
 /**
  * CORS helpers for API routes.
@@ -37,7 +38,7 @@ export function preflightResponse(origin?: string): NextResponse {
     response.headers.set('Vary', 'Origin');
   }
 
-  return response;
+  return applySecurityHeaders(response);
 }
 
 /**
@@ -49,7 +50,7 @@ export function applyCorsHeaders(
 ): NextResponse {
   response.headers.set('Access-Control-Allow-Origin', allowedOrigin);
   response.headers.set('Vary', 'Origin');
-  return response;
+  return applySecurityHeaders(response);
 }
 
 /**

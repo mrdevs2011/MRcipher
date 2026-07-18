@@ -55,6 +55,8 @@ export interface UserDoc {
  * The raw API key is never stored; only its SHA-256 hash and a prefix
  * for display purposes are kept.
  */
+export type ApiKeyScope = 'encrypt' | 'decrypt' | 'health' | 'usage';
+
 export interface ApiKeyDoc {
   uid: string;
   email?: string;
@@ -65,6 +67,8 @@ export interface ApiKeyDoc {
   last_used_at?: Timestamp | string;
   revoked?: boolean;
   allowed_origins?: string[];
+  allowed_ips?: string[];
+  scopes?: ApiKeyScope[];
 }
 
 /** Public view of an API key (returned when listing keys). */
@@ -76,13 +80,15 @@ export interface ApiKeyPublicView {
   last_used_at?: string;
   revoked: boolean;
   allowed_origins?: string[];
+  allowed_ips?: string[];
+  scopes?: ApiKeyScope[];
 }
 
 /** Input used when writing a usage log entry. */
 export interface UsageLogDocInput {
   uid: string;
   email?: string;
-  endpoint: 'encrypt' | 'decrypt' | 'health';
+  endpoint: 'encrypt' | 'decrypt' | 'health' | 'usage';
   status: 'success' | 'error';
   bytes_in?: number;
   bytes_out?: number;
@@ -96,6 +102,7 @@ export interface UsageAggregateDoc {
   uid: string;
   total_encrypts: number;
   total_decrypts: number;
+  total_health_checks: number;
   total_errors: number;
   last_request_at: Timestamp | string;
   updated_at: Timestamp | string;
@@ -105,6 +112,7 @@ export interface UsageAggregateDoc {
 export interface UsageStats {
   total_encrypts: number;
   total_decrypts: number;
+  total_health_checks: number;
   total_errors: number;
   last_request_at?: string;
 }

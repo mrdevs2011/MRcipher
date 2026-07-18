@@ -11,6 +11,10 @@ import {
   logServerError,
   successResponse,
 } from '@/lib/utils/response';
+import {
+  assertBodySizeAllowed,
+  assertJsonContentType,
+} from '@/lib/utils/validation';
 
 /**
  * POST /api/v1/encrypt
@@ -42,6 +46,9 @@ export async function POST(req: NextRequest) {
   const origin = getOriginHeader(req);
 
   try {
+    assertJsonContentType(req);
+    assertBodySizeAllowed(req);
+
     const body = await req.json();
     const parsed = encryptRequestSchema.safeParse(body);
 
@@ -53,7 +60,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { uid, email } = await authenticateRequest(req);
+    const { uid, email } = await authenticateRequest(req, 'encrypt');
     const allowedOrigin = origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*';
 
     const serialized = JSON.stringify(parsed.data.content);
