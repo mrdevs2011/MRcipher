@@ -621,7 +621,7 @@ export default function HomePage() {
               </div>
 
               <div className="mt-1" style={{ textAlign: 'center' }}>
-                <a href="/doc/index.html" className="btn btn-secondary">
+                <a href="/doc" className="btn btn-secondary">
                   Dasturchi uchun qo‘llanma
                 </a>
               </div>
