@@ -204,9 +204,10 @@
     <div class="card">
       <div class="card-title">🔧 Konfiguratsiya</div>
       <div class="config">
-        <input id="serverUrl" value="https://mrcipher.vercel.app" placeholder="MRcipher server URL" />
-        <input id="apiKey" value="mr_pqjHR-0LIqNZts8S960z98494vDvQseWmvPF2vRdMaM" placeholder="MRcipher API key" />
+        <input id="serverUrl" placeholder="MRcipher server URL" />
+        <input id="apiKey" placeholder="MRcipher API key" />
       </div>
+      <div class="hint">Yangi API key kiritgandan so‘ng u brauzer xotirasiga saqlanadi va sahifa yangilanganda ham ishlaydi.</div>
       <div class="row" style="margin-top: 0.75rem;">
         <button onclick="checkHealth()">Health tekshirish</button>
         <button class="secondary" onclick="clearLogs()">Loglarni tozalash</button>
@@ -300,6 +301,11 @@
     const decryptedCache = new Map();
     let lastCiphertextJson = '';
 
+    const DEFAULT_SERVER_URL = 'https://mrcipher.vercel.app';
+    const DEFAULT_API_KEY = 'mr_pqjHR-0LIqNZts8S960z98494vDvQseWmvPF2vRdMaM';
+    const STORAGE_KEY_URL = 'mrcipher_test_serverUrl';
+    const STORAGE_KEY_API_KEY = 'mrcipher_test_apiKey';
+
     function serverUrl() {
       return document.getElementById('serverUrl').value.replace(/\/$/, '');
     }
@@ -309,6 +315,28 @@
     function keyPrefix() {
       const key = apiKey();
       return key ? key.slice(0, 8) + '···' + key.slice(-4) : 'noma’lum';
+    }
+
+    function loadConfig() {
+      try {
+        const savedUrl = localStorage.getItem(STORAGE_KEY_URL);
+        const savedKey = localStorage.getItem(STORAGE_KEY_API_KEY);
+        document.getElementById('serverUrl').value = savedUrl || DEFAULT_SERVER_URL;
+        document.getElementById('apiKey').value = savedKey || DEFAULT_API_KEY;
+      } catch (err) {
+        document.getElementById('serverUrl').value = DEFAULT_SERVER_URL;
+        document.getElementById('apiKey').value = DEFAULT_API_KEY;
+        log('localStorage dan o‘qib bo‘lmadi: ' + err.message, 'err');
+      }
+    }
+
+    function saveConfig() {
+      try {
+        localStorage.setItem(STORAGE_KEY_URL, serverUrl());
+        localStorage.setItem(STORAGE_KEY_API_KEY, apiKey());
+      } catch (err) {
+        log('localStorage ga saqlab bo‘lmadi: ' + err.message, 'err');
+      }
     }
 
     function log(text, type = 'info') {
@@ -681,6 +709,9 @@
       status(2, 'Firestore xatolik');
     });
 
+    document.getElementById('serverUrl').addEventListener('change', saveConfig);
+    document.getElementById('apiKey').addEventListener('input', saveConfig);
+    loadConfig();
     checkHealth();
   </script>
 </body>
