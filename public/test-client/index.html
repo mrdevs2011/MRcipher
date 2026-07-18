@@ -3,52 +3,112 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Test Chat — Firebase</title>
+  <title>MRcipher Advanced Test Lab</title>
   <style>
     :root {
-      --bg: #0b0f19;
-      --card: #151c2c;
+      --bg: #030712;
+      --card: #111827;
       --input: #1f2937;
-      --border: #243049;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --primary: #38bdf8;
-      --sent: #22c55e;
-      --received: #3b82f6;
+      --border: #1f2937;
+      --border-hover: #374151;
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --dim: #6b7280;
+      --primary: #22d3ee;
+      --primary-hover: #06b6d4;
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.12);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --warning: #f59e0b;
       --radius: 0.75rem;
+      --radius-sm: 0.5rem;
+      --mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
     }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
     * { box-sizing: border-box; }
     body {
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font-family: system-ui, sans-serif;
+      font-family: 'Inter', system-ui, sans-serif;
       padding: 1rem;
+      line-height: 1.5;
     }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    h1 { margin: 0 0 0.5rem; font-size: 1.5rem; }
-    p { color: var(--muted); margin: 0 0 1rem; }
-    .phones {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-    @media (max-width: 800px) {
-      .phones { grid-template-columns: 1fr; }
-    }
-    .phone {
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+    .subtitle { color: var(--muted); margin: 0 0 1.25rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+    .card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 1rem;
+    }
+    .card-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin: 0 0 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge.ok { background: var(--success-bg); color: var(--success); }
+    .badge.err { background: var(--danger-bg); color: var(--danger); }
+    .badge.warn { background: rgba(245, 158, 11, 0.12); color: var(--warning); }
+    .row { display: flex; gap: 0.5rem; }
+    input, textarea, select {
+      width: 100%;
+      padding: 0.625rem 0.875rem;
+      background: var(--input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+    textarea { font-family: var(--mono); min-height: 80px; resize: vertical; }
+    button {
+      padding: 0.625rem 1.25rem;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: var(--primary);
+      color: #020617;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    button:hover { background: var(--primary-hover); }
+    button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    button.secondary:hover { background: var(--input); }
+    .phones {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    @media (max-width: 900px) { .phones { grid-template-columns: 1fr; } }
+    .phone {
       display: flex;
       flex-direction: column;
-      height: 600px;
+      height: 520px;
     }
     .phone-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       font-weight: 700;
       padding-bottom: 0.75rem;
       border-bottom: 1px solid var(--border);
@@ -59,88 +119,152 @@
       overflow-y: auto;
       padding: 0.5rem;
       background: #020617;
-      border-radius: 0.5rem;
+      border-radius: var(--radius-sm);
       margin-bottom: 0.75rem;
     }
     .msg {
-      max-width: 80%;
+      max-width: 90%;
       padding: 0.625rem 0.875rem;
       border-radius: 0.75rem;
-      margin-bottom: 0.5rem;
-      font-size: 0.95rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.9rem;
       word-break: break-word;
     }
-    .msg.sent {
-      background: rgba(34, 197, 94, 0.15);
-      color: #86efac;
-      margin-left: auto;
-      border-bottom-right-radius: 0.25rem;
-    }
-    .msg.received {
-      background: rgba(59, 130, 246, 0.15);
-      color: #93c5fd;
-      margin-right: auto;
-      border-bottom-left-radius: 0.25rem;
-    }
-    .msg-meta {
-      font-size: 0.7rem;
-      color: var(--muted);
-      margin-top: 0.25rem;
-    }
-    .input-row {
-      display: flex;
-      gap: 0.5rem;
-    }
-    input {
-      flex: 1;
-      padding: 0.625rem 0.875rem;
-      background: var(--input);
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      color: var(--text);
-      font-size: 0.95rem;
-    }
-    button {
-      padding: 0.625rem 1.25rem;
-      border: none;
-      border-radius: 0.5rem;
-      background: var(--primary);
-      color: #020617;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .status {
+    .msg.sent { background: rgba(34, 211, 238, 0.12); margin-left: auto; border-bottom-right-radius: 0.25rem; }
+    .msg.received { background: rgba(59, 130, 246, 0.12); margin-right: auto; border-bottom-left-radius: 0.25rem; }
+    .msg-meta { font-size: 0.7rem; color: var(--dim); margin-top: 0.25rem; }
+    .msg-detail {
       margin-top: 0.5rem;
-      font-size: 0.85rem;
+      padding: 0.5rem;
+      background: #0b1021;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--mono);
+      font-size: 0.75rem;
       color: var(--muted);
-      min-height: 1.25rem;
+      overflow-x: auto;
     }
+    .msg-detail summary { cursor: pointer; color: var(--primary); }
+    .kv { display: grid; grid-template-columns: 90px 1fr; gap: 0.25rem; margin-bottom: 0.25rem; }
+    .kv .k { color: var(--dim); }
+    .kv .v { color: var(--text); word-break: break-all; }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+    .flow-step {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .flow-step.active { border-color: var(--primary); color: var(--primary); background: rgba(34, 211, 238, 0.08); }
+    .flow-arrow { text-align: center; color: var(--dim); font-size: 1.2rem; }
+    .logs {
+      height: 300px;
+      overflow-y: auto;
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+    }
+    .log-entry { margin-bottom: 0.375rem; color: var(--muted); }
+    .log-entry.ok { color: var(--success); }
+    .log-entry.err { color: var(--danger); }
+    .log-entry.info { color: var(--primary); }
+    .config { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    @media (max-width: 700px) { .config { grid-template-columns: 1fr; } }
+    .status-line { font-size: 0.85rem; color: var(--muted); min-height: 1.25rem; margin-top: 0.5rem; }
+    .health { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Test Chat</h1>
-    <p>Ikki telefon simulatori. Xabarlar Firebase Firestore orqali real-time almashadi.</p>
+    <h1>MRcipher Advanced Test Lab</h1>
+    <p class="subtitle">
+      Xabarlarni real-time kuzating: qanday shifrlanadi, qayerga yoziladi, qanday ochiladi.
+    </p>
 
-    <div class="phones">
-      <div class="phone">
-        <div class="phone-header">Telefon 1</div>
-        <div id="messages1" class="messages"></div>
-        <div class="input-row">
-          <input id="input1" type="text" placeholder="Xabar yozing..." />
-          <button onclick="send(1)">Yuborish</button>
+    <div class="health">
+      <span id="apiHealth" class="badge warn">API: tekshirilmoqda...</span>
+      <span id="fsHealth" class="badge warn">Firestore: tekshirilmoqda...</span>
+      <span id="keyHealth" class="badge warn">API key: tekshirilmoqda...</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔧 Konfiguratsiya</div>
+      <div class="config">
+        <input id="serverUrl" value="https://mrcipher.vercel.app" placeholder="MRcipher server URL" />
+        <input id="apiKey" value="mr_pqjHR-0LIqNZts8S960z98494vDvQseWmvPF2vRdMaM" placeholder="MRcipher API key" />
+      </div>
+      <div class="row" style="margin-top: 0.75rem;">
+        <button onclick="checkHealth()">Health tekshirish</button>
+        <button class="secondary" onclick="clearLogs()">Loglarni tozalash</button>
+      </div>
+    </div>
+
+    <div class="flow" style="margin-top: 1rem;">
+      <div id="flow1" class="flow-step active">1. Matn kiritildi</div>
+      <div id="flow2" class="flow-step">2. MRcipher encrypt</div>
+      <div id="flow3" class="flow-step">3. Firestore ga yozildi</div>
+      <div id="flow4" class="flow-step">4. Telefonlar o‘qidi</div>
+      <div id="flow5" class="flow-step">5. MRcipher decrypt</div>
+      <div id="flow6" class="flow-step">6. Ekranda ko‘rsatildi</div>
+    </div>
+
+    <div class="grid" style="margin-top: 1rem;">
+      <div class="card">
+        <div class="card-title">🧪 Shifrlash laboratoriyasi</div>
+        <textarea id="labInput" placeholder="Shifrlash uchun matn kiriting..."></textarea>
+        <div class="row" style="margin-top: 0.5rem;">
+          <button onclick="runLabEncrypt()">Shifrlash</button>
+          <button class="secondary" onclick="runLabDecrypt()">Ochish</button>
         </div>
-        <div id="status1" class="status"></div>
+        <div id="labStatus" class="status-line"></div>
+        <details class="msg-detail" style="margin-top: 0.75rem;">
+          <summary>Natija</summary>
+          <div id="labResult" class="kv" style="margin-top: 0.5rem;"></div>
+        </details>
       </div>
 
-      <div class="phone">
-        <div class="phone-header">Telefon 2</div>
+      <div class="card">
+        <div class="card-title">📡 Live loglar</div>
+        <div id="logs" class="logs"></div>
+      </div>
+    </div>
+
+    <div class="phones">
+      <div class="phone card">
+        <div class="phone-header">
+          <span>Telefon 1</span>
+          <span class="badge ok">sender + receiver</span>
+        </div>
+        <div id="messages1" class="messages"></div>
+        <div class="row">
+          <input id="input1" placeholder="Xabar yozing..." />
+          <button onclick="send(1)">Yuborish</button>
+        </div>
+        <div id="status1" class="status-line"></div>
+      </div>
+
+      <div class="phone card">
+        <div class="phone-header">
+          <span>Telefon 2</span>
+          <span class="badge ok">sender + receiver</span>
+        </div>
         <div id="messages2" class="messages"></div>
-        <div class="input-row">
-          <input id="input2" type="text" placeholder="Xabar yozing..." />
+        <div class="row">
+          <input id="input2" placeholder="Xabar yozing..." />
           <button onclick="send(2)">Yuborish</button>
         </div>
-        <div id="status2" class="status"></div>
+        <div id="status2" class="status-line"></div>
       </div>
     </div>
   </div>
@@ -159,48 +283,121 @@
       measurementId: 'G-MK8N9K9N2C',
     };
 
-    // MRcipher API settings for this test
-    const CIPHER_SERVER_URL = 'https://mrcipher.vercel.app';
-    const CIPHER_API_KEY = 'mr_pqjHR-0LIqNZts8S960z98494vDvQseWmvPF2vRdMaM';
-
     initializeApp(firebaseConfig);
     const db = getFirestore();
     const messagesRef = collection(db, 'messages');
+    const messagesQuery = query(messagesRef, orderBy('createdAt', 'asc'));
+
+    const logsEl = document.getElementById('logs');
+    const flowSteps = [1,2,3,4,5,6].map(i => document.getElementById('flow' + i));
+
+    function serverUrl() {
+      return document.getElementById('serverUrl').value.replace(/\/$/, '');
+    }
+    function apiKey() {
+      return document.getElementById('apiKey').value.trim();
+    }
+    function keyPrefix() {
+      const key = apiKey();
+      return key ? key.slice(0, 8) + '···' + key.slice(-4) : 'noma’lum';
+    }
+
+    function log(text, type = 'info') {
+      const div = document.createElement('div');
+      div.className = 'log-entry ' + type;
+      div.textContent = `[${new Date().toLocaleTimeString('uz-UZ')}] ${text}`;
+      logsEl.appendChild(div);
+      logsEl.scrollTop = logsEl.scrollHeight;
+    }
+
+    window.clearLogs = function() {
+      logsEl.innerHTML = '';
+    };
+
+    function setFlow(step) {
+      flowSteps.forEach((el, idx) => {
+        el.classList.toggle('active', idx + 1 === step);
+      });
+    }
 
     function status(n, text) {
       document.getElementById('status' + n).textContent = text;
     }
 
+    function setHealth(id, text, ok) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = 'badge ' + (ok ? 'ok' : 'err');
+    }
+
+    window.checkHealth = async function() {
+      log('Health tekshiruvi boshlandi...', 'info');
+      setHealth('apiHealth', 'API: tekshirilmoqda...', false);
+      setHealth('fsHealth', 'Firestore: tekshirilmoqda...', false);
+      setHealth('keyHealth', 'API key: tekshirilmoqda...', false);
+
+      const start = performance.now();
+      try {
+        const res = await fetch(`${serverUrl()}/api/v1/health`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${apiKey()}`,
+            origin: window.location.origin,
+          },
+        });
+        const json = await res.json();
+        const latency = Math.round(performance.now() - start);
+        if (res.ok && json.success) {
+          setHealth('apiHealth', `API: ok (${json.data?.latency_ms}ms server, ${latency}ms client)`, true);
+          setHealth('fsHealth', `Firestore: ${json.data?.firestore || 'reachable'}`, true);
+          setHealth('keyHealth', `API key: ${keyPrefix()}`, true);
+          log(`Health OK — server latency ${json.data?.latency_ms}ms`, 'ok');
+        } else {
+          setHealth('apiHealth', `API: xato ${json.error?.code || res.status}`, false);
+          log(`Health xato: ${json.error?.message || res.status}`, 'err');
+        }
+      } catch (err) {
+        setHealth('apiHealth', 'API: tarmoq xatosi', false);
+        log('Health tarmoq xatosi: ' + err.message, 'err');
+      }
+    };
+
     async function encrypt(text) {
-      const res = await fetch(`${CIPHER_SERVER_URL}/api/v1/encrypt`, {
+      const start = performance.now();
+      const res = await fetch(`${serverUrl()}/api/v1/encrypt`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          Authorization: `Bearer ${CIPHER_API_KEY}`,
+          Authorization: `Bearer ${apiKey()}`,
+          origin: window.location.origin,
         },
         body: JSON.stringify({ content: text }),
       });
       const json = await res.json();
+      const latency = Math.round(performance.now() - start);
       if (!res.ok || !json.success) {
         throw new Error(json.error?.message || `HTTP ${res.status}`);
       }
-      return json.data;
+      return { data: json.data, latency, meta: json.meta };
     }
 
     async function decrypt(payload) {
-      const res = await fetch(`${CIPHER_SERVER_URL}/api/v1/decrypt`, {
+      const start = performance.now();
+      const res = await fetch(`${serverUrl()}/api/v1/decrypt`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          Authorization: `Bearer ${CIPHER_API_KEY}`,
+          Authorization: `Bearer ${apiKey()}`,
+          origin: window.location.origin,
         },
         body: JSON.stringify({ content: payload }),
       });
       const json = await res.json();
+      const latency = Math.round(performance.now() - start);
       if (!res.ok || !json.success) {
         throw new Error(json.error?.message || `HTTP ${res.status}`);
       }
-      return json.data;
+      return { data: json.data, latency, meta: json.meta };
     }
 
     function isEncryptedPayload(value) {
@@ -214,14 +411,84 @@
       );
     }
 
-    function render(id, from, text, time) {
-      const el = document.getElementById('messages' + id);
-      const div = document.createElement('div');
-      div.className = 'msg ' + (from === id ? 'sent' : 'received');
-      div.innerHTML = `<div>${escapeHtml(text)}</div><div class="msg-meta">${from === id ? 'Siz' : 'Telefon ' + from} • ${time}</div>`;
-      el.appendChild(div);
-      el.scrollTop = el.scrollHeight;
-    }
+    window.runLabEncrypt = async function() {
+      const input = document.getElementById('labInput').value.trim();
+      if (!input) return;
+      document.getElementById('labStatus').textContent = 'Shifrlanmoqda...';
+      setFlow(2);
+      try {
+        const result = await encrypt(input);
+        document.getElementById('labStatus').textContent = `Shifrlash bajarildi (${result.latency}ms)`;
+        document.getElementById('labResult').innerHTML = `
+          <div class="kv"><span class="k">plaintext</span><span class="v">${escapeHtml(input)}</span></div>
+          <div class="kv"><span class="k">ciphertext</span><span class="v">${escapeHtml(result.data.ciphertext)}</span></div>
+          <div class="kv"><span class="k">iv</span><span class="v">${escapeHtml(result.data.iv)}</span></div>
+          <div class="kv"><span class="k">tag</span><span class="v">${escapeHtml(result.data.tag)}</span></div>
+          <div class="kv"><span class="k">version</span><span class="v">${escapeHtml(result.data.version)}</span></div>
+          <div class="kv"><span class="k">latency</span><span class="v">${result.latency}ms</span></div>
+          <div class="kv"><span class="k">bytes_in</span><span class="v">${result.meta?.bytes_in ?? '-'}</span></div>
+          <div class="kv"><span class="k">bytes_out</span><span class="v">${result.meta?.bytes_out ?? '-'}</span></div>
+        `;
+        log(`Lab encrypt: plaintext → ciphertext (${result.latency}ms)`, 'ok');
+      } catch (err) {
+        document.getElementById('labStatus').textContent = 'Xatolik: ' + err.message;
+        log('Lab encrypt xatosi: ' + err.message, 'err');
+      }
+    };
+
+    window.runLabDecrypt = async function() {
+      const input = document.getElementById('labInput').value.trim();
+      if (!input) return;
+      document.getElementById('labStatus').textContent = 'Ochilmoqda...';
+      try {
+        const payload = JSON.parse(input);
+        if (!isEncryptedPayload(payload)) {
+          throw new Error('Input to‘g‘ri encrypted payload emas');
+        }
+        const result = await decrypt(payload);
+        document.getElementById('labStatus').textContent = `Ochish bajarildi (${result.latency}ms)`;
+        document.getElementById('labResult').innerHTML = `
+          <div class="kv"><span class="k">ciphertext</span><span class="v">${escapeHtml(payload.ciphertext)}</span></div>
+          <div class="kv"><span class="k">plaintext</span><span class="v">${escapeHtml(String(result.data))}</span></div>
+          <div class="kv"><span class="k">latency</span><span class="v">${result.latency}ms</span></div>
+        `;
+        log('Lab decrypt: ciphertext → plaintext (' + result.latency + 'ms)', 'ok');
+      } catch (err) {
+        document.getElementById('labStatus').textContent = 'Xatolik: ' + err.message;
+        log('Lab decrypt xatosi: ' + err.message, 'err');
+      }
+    };
+
+    window.send = async function(n) {
+      const input = document.getElementById('input' + n);
+      const text = input.value.trim();
+      if (!text) return;
+
+      setFlow(1);
+      status(n, 'Shifrlanmoqda...');
+      log(`Telefon ${n}: xabar shifrlanmoqda...`, 'info');
+
+      try {
+        setFlow(2);
+        const encrypted = await encrypt(text);
+        log(`Telefon ${n}: MRcipher encrypt bajarildi (${encrypted.latency}ms)`, 'ok');
+
+        setFlow(3);
+        const docRef = await addDoc(messagesRef, {
+          text: encrypted.data,
+          from: n,
+          createdAt: serverTimestamp(),
+        });
+        log(`Telefon ${n}: Firestore hujjat yozildi — ${docRef.path}`, 'ok');
+
+        input.value = '';
+        status(n, 'Yuborildi');
+        setFlow(4);
+      } catch (err) {
+        status(n, 'Xatolik: ' + err.message);
+        log('Telefon ' + n + ' yuborish xatosi: ' + err.message, 'err');
+      }
+    };
 
     function escapeHtml(str) {
       const div = document.createElement('div');
@@ -229,29 +496,30 @@
       return div.innerHTML;
     }
 
-    window.send = async function(n) {
-      const input = document.getElementById('input' + n);
-      const text = input.value.trim();
-      if (!text) return;
+    function renderMsg(phoneId, from, plain, raw, time, docPath, decryptLatency) {
+      const el = document.getElementById('messages' + phoneId);
+      const div = document.createElement('div');
+      div.className = 'msg ' + (from === phoneId ? 'sent' : 'received');
+      const encryptedPreview = isEncryptedPayload(raw)
+        ? `ciphertext: ${raw.ciphertext.slice(0, 24)}...`
+        : 'shifrlanmagan';
+      div.innerHTML = `
+        <div>${escapeHtml(plain)}</div>
+        <div class="msg-meta">${from === phoneId ? 'Siz' : 'Telefon ' + from} • ${time}</div>
+        <details class="msg-detail">
+          <summary>Qo‘shimcha ma’lumot</summary>
+          <div class="kv"><span class="k">Firestore</span><span class="v">${escapeHtml(docPath)}</span></div>
+          <div class="kv"><span class="k">API key</span><span class="v">${escapeHtml(keyPrefix())}</span></div>
+          <div class="kv"><span class="k">Server URL</span><span class="v">${escapeHtml(serverUrl())}</span></div>
+          <div class="kv"><span class="k">Encrypted</span><span class="v">${escapeHtml(encryptedPreview)}</span></div>
+          <div class="kv"><span class="k">Decrypt ms</span><span class="v">${decryptLatency ?? '-'}ms</span></div>
+        </details>
+      `;
+      el.appendChild(div);
+      el.scrollTop = el.scrollHeight;
+    }
 
-      status(n, 'Shifrlanmoqda...');
-
-      try {
-        const encrypted = await encrypt(text);
-
-        await addDoc(messagesRef, {
-          text: encrypted,
-          from: n,
-          createdAt: serverTimestamp(),
-        });
-        input.value = '';
-        status(n, 'Yuborildi (shifrlangan)');
-      } catch (err) {
-        status(n, 'Xatolik: ' + err.message);
-      }
-    };
-
-    onSnapshot(query(messagesRef, orderBy('createdAt', 'asc')), (snapshot) => {
+    onSnapshot(messagesQuery, (snapshot) => {
       document.getElementById('messages1').innerHTML = '';
       document.getElementById('messages2').innerHTML = '';
 
@@ -259,24 +527,36 @@
         const data = doc.data();
         const from = data.from;
         const raw = data.text;
-        const time = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleTimeString('uz-UZ') : '-';
+        const time = data.createdAt?.toDate
+          ? data.createdAt.toDate().toLocaleTimeString('uz-UZ')
+          : '-';
 
         let plain = raw;
+        let decryptLatency = null;
         if (isEncryptedPayload(raw)) {
           try {
-            plain = await decrypt(raw);
+            const start = performance.now();
+            const result = await decrypt(raw);
+            plain = result.data;
+            decryptLatency = Math.round(performance.now() - start);
+            log(`Decrypt: ${doc.ref.path} → plaintext (${decryptLatency}ms)`, 'ok');
+            setFlow(6);
           } catch (err) {
-            plain = '[shifrni ochib bo\'lmadi]';
+            plain = '[shifrni ochib bo‘lmadi]';
+            log('Decrypt xatosi: ' + err.message, 'err');
           }
         }
 
-        render(1, from, plain, time);
-        render(2, from, plain, time);
+        renderMsg(1, from, plain, raw, time, doc.ref.path, decryptLatency);
+        renderMsg(2, from, plain, raw, time, doc.ref.path, decryptLatency);
       });
     }, (err) => {
-      status(1, 'Firestore xatolik: ' + err.message);
-      status(2, 'Firestore xatolik: ' + err.message);
+      log('Firestore xatolik: ' + err.message, 'err');
+      status(1, 'Firestore xatolik');
+      status(2, 'Firestore xatolik');
     });
+
+    checkHealth();
   </script>
 </body>
 </html>
