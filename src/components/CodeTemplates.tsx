@@ -209,31 +209,10 @@ export function CodeTemplates({ serverUrl, apiKey }: CodeTemplatesProps) {
         ))}
       </div>
 
-      <div
-        style={{
-          background: '#020617',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-sm)',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '0.625rem 1rem',
-            background: 'var(--bg-card)',
-            borderBottom: '1px solid var(--border)',
-          }}
-        >
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-            {activeTemplate.label}
-          </span>
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={copyCode}
-          >
+      <div className="code-panel">
+        <div className="code-panel-header">
+          <span className="code-panel-label">{activeTemplate.label}</span>
+          <button className="btn btn-ghost btn-sm" onClick={copyCode}>
             {copied ? 'Nusxa olindi!' : 'Nusxa olish'}
           </button>
         </div>

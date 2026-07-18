@@ -444,7 +444,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="container">
+    <div className="page">
       <nav className="navbar">
         <div className="navbar-inner container">
           <a href="/" className="brand">
@@ -466,7 +466,8 @@ export default function HomePage() {
         </div>
       </nav>
 
-      <main style={{ padding: '2.5rem 0' }}>
+      <main>
+        <div className="container">
         {!user ? (
           <section className="hero">
             <div className="badge">
@@ -475,7 +476,7 @@ export default function HomePage() {
             </div>
 
             <Logo size={80} />
-            <h1 style={{ marginTop: '1.5rem' }}>
+            <h1 className='mt-2'>
               Himoyalang<span>.</span> Har qanday ma&apos;lumot.
             </h1>
             <p>
@@ -489,18 +490,20 @@ export default function HomePage() {
                 <span className="alert-icon"><ExclamationIcon size={20} /></span>
                 <div style={{ flex: 1 }}>
                   {signInError}
-                  <button className="btn btn-ghost btn-sm" onClick={clearSignInError} style={{ marginLeft: '0.5rem' }}>
+                  <button className="btn btn-ghost btn-sm" onClick={clearSignInError} >
                     Yopish
                   </button>
                 </div>
               </div>
             )}
 
-            <button className="btn btn-primary" onClick={signInWithGoogle}>
-              Google bilan boshlash
-            </button>
+            <div className="hero-actions">
+              <button className="btn btn-primary" onClick={signInWithGoogle}>
+                Google bilan boshlash
+              </button>
+            </div>
 
-            <div className="grid-3 mt-2" style={{ maxWidth: 900, margin: '3rem auto 0' }}>
+            <div className="grid-3 mt-2">
               <div className="feature-card">
                 <div className="feature-icon"><LockIcon size={28} /></div>
                 <div className="feature-title">AES-256-GCM</div>
@@ -520,21 +523,21 @@ export default function HomePage() {
           </section>
         ) : (
           <>
-            <section className="card" style={{ marginBottom: '1.25rem' }}>
+            <section className='card mb-1'>
               <div className="card-header">
                 <div>
                   <div className="card-title">Xush kelibsiz</div>
-                  <p className="card-desc" style={{ margin: 0 }}>{user.email}</p>
+                  <p className="card-desc" >{user.email}</p>
                 </div>
                 <button className="btn btn-secondary btn-sm" onClick={logout}>Chiqish</button>
               </div>
             </section>
 
-            <section className="card" style={{ marginBottom: '1.25rem' }}>
-              <div className="card-header">
+            <section className='card mb-1'>
+              <div className="card-header translator-header">
                 <div>
                   <div className="card-title">Cipher Translator</div>
-                  <p className="card-desc" style={{ margin: 0 }}>
+                  <p className="card-desc" >
                     Google Translate kabi: matnni shifrlang yoki shifrlangan payload ni oching.
                   </p>
                 </div>
@@ -564,8 +567,8 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-start' }}>
-                <label className="block" style={{ marginBottom: 0, flex: '1 1 240px' }}>
+              <div className='key-selector'>
+                <label className='key-selector-field'>
                   API key
                   <select
                     className="input"
@@ -586,8 +589,8 @@ export default function HomePage() {
                 </label>
 
                 {translatorBoundKeyId !== 'fresh' && !translatorKeyBound && (
-                  <div style={{ flex: '2 1 320px', display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-                    <label className="block" style={{ marginBottom: 0, flex: 1 }}>
+                  <div className='key-input-row'>
+                    <label className='key-input-field'>
                       Kalit qiymatini kiriting
                       <input
                         type="text"
@@ -608,25 +611,25 @@ export default function HomePage() {
                 )}
 
                 {translatorKeyBound && (
-                  <div className="key-meta" style={{ alignSelf: 'center', marginTop: '1.55rem', display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <div className='key-meta key-status'>
+                    <span className='status-success'>
                       <CheckIcon size={14} /> Briktirilgan · mr_···{translatorBoundRawKey.slice(-4)}
                     </span>
                   </div>
                 )}
 
                 {translatorBoundKeyId === 'fresh' && !freshApiKey && (
-                  <div className="key-meta" style={{ alignSelf: 'center', marginTop: '1.55rem', display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--warning)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <div className='key-meta key-status'>
+                    <span className='status-warning'>
                       <AlertTriangleIcon size={14} /> Yangi key yaratib, uni nusxa oling
                     </span>
                   </div>
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '1rem', alignItems: 'stretch' }}>
+              <div className="translator-grid">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label className="block" style={{ marginBottom: 0 }}>
+                  <label className="block" >
                     {translatorMode === 'encrypt' ? 'Matn' : 'Cipher JSON'}
                   </label>
                   <textarea
@@ -642,7 +645,7 @@ export default function HomePage() {
                   />
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '0.5rem' }}>
+                <div className="translator-actions">
                   <button
                     className="btn btn-primary"
                     onClick={runTranslator}
@@ -661,13 +664,12 @@ export default function HomePage() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label className="block" style={{ marginBottom: 0 }}>
+                  <label className="block" >
                     {translatorMode === 'encrypt' ? 'Cipher JSON' : 'Matn'}
                     <button
-                      className="btn btn-ghost btn-sm"
+                      className='btn btn-ghost btn-sm btn-copy-inline'
                       onClick={copyTranslatorOutput}
                       disabled={!translatorOutput}
-                      style={{ marginLeft: '0.75rem', padding: '0.35rem 0.6rem' }}
                     >
                       {copied ? 'Nusxa olindi!' : 'Nusxa olish'}
                     </button>
@@ -683,7 +685,7 @@ export default function HomePage() {
               </div>
 
               {translatorMeta && (
-                <div className="key-meta" style={{ marginTop: '0.75rem' }}>
+                <div className="key-meta" >
                   <span>Latency: {translatorMeta.latency_ms}ms</span>
                   {translatorMeta.bytes_in !== undefined && (
                     <span>Bytes in: {translatorMeta.bytes_in}</span>
@@ -696,11 +698,11 @@ export default function HomePage() {
 
             </section>
 
-            <section className="card" style={{ marginBottom: '1.25rem' }}>
-              <div className="card-header">
+            <section className='card mb-1'>
+              <div className="card-header key-card-header">
                 <div>
                   <div className="card-title">API keylar</div>
-                  <p className="card-desc" style={{ margin: 0 }}>
+                  <p className="card-desc" >
                     Yangi kalit faqat bir marta ko&apos;rsatiladi va tiklab bo&apos;lmaydi.
                   </p>
                 </div>
@@ -727,7 +729,7 @@ export default function HomePage() {
                               value={editName}
                               onChange={(e) => setEditName(e.target.value)}
                               maxLength={100}
-                              style={{ marginBottom: '0.5rem' }}
+                              
                             />
                             <textarea
                               className="textarea textarea-sm"
@@ -735,7 +737,7 @@ export default function HomePage() {
                               value={editOrigins}
                               onChange={(e) => setEditOrigins(e.target.value)}
                               placeholder="https://example.com"
-                              style={{ marginBottom: '0.5rem' }}
+                              
                             />
                             <textarea
                               className="textarea textarea-sm"
@@ -743,7 +745,7 @@ export default function HomePage() {
                               value={editIps}
                               onChange={(e) => setEditIps(e.target.value)}
                               placeholder="192.168.1.10"
-                              style={{ marginBottom: '0.5rem' }}
+                              
                             />
                             {renderScopeCheckboxes(editScopes, setEditScopes)}
                           </>
@@ -802,7 +804,7 @@ export default function HomePage() {
                     <button className="btn btn-ghost btn-sm" onClick={closeCreateModal}><CloseIcon size={20} /></button>
                   </div>
 
-                  <label className="block" style={{ marginBottom: 0 }}>
+                  <label className="block" >
                     API key nomi
                     <input
                       type="text"
@@ -824,7 +826,7 @@ export default function HomePage() {
 
                   {showAdvanced && (
                     <div className="advanced-fields">
-                      <label className="block mt-1" style={{ marginBottom: 0 }}>
+                      <label className="block mt-1" >
                         Ruxsat etilgan domenlar (ixtiyoriy)
                         <textarea
                           className="textarea"
@@ -838,7 +840,7 @@ export default function HomePage() {
                         </span>
                       </label>
 
-                      <label className="block mt-1" style={{ marginBottom: 0 }}>
+                      <label className="block mt-1" >
                         Ruxsat etilgan IP manzillar (ixtiyoriy)
                         <textarea
                           className="textarea"
@@ -852,7 +854,7 @@ export default function HomePage() {
                         </span>
                       </label>
 
-                      <label className="block mt-1" style={{ marginBottom: 0 }}>
+                      <label className="block mt-1" >
                         Ruxsat etilgan endpointlar (ixtiyoriy)
                         {renderScopeCheckboxes(newKeyScopes, setNewKeyScopes)}
                         <span className="input-hint">
@@ -869,7 +871,7 @@ export default function HomePage() {
                       <button
                         className="btn btn-secondary btn-sm"
                         onClick={copyApiKey}
-                        style={{ marginTop: '0.75rem' }}
+                        
                       >
                         {copied ? 'Nusxa olindi!' : 'Nusxa olish'}
                       </button>
@@ -898,7 +900,7 @@ export default function HomePage() {
             )}
 
             {freshApiKey && !showCreateModal && (
-              <section className="card" style={{ marginBottom: '1.25rem' }}>
+              <section className='card mb-1'>
                 <div className="card-title">Integratsiya qilish</div>
                 <p className="card-desc">
                   Quyidagi template&apos;lardan birini loyihangizga nusxa oling.
@@ -915,11 +917,11 @@ export default function HomePage() {
               </section>
             )}
 
-            <section className="card" style={{ marginTop: '1.25rem' }}>
+            <section className='card mt-1'>
               <div className="card-title">Endpointlar</div>
               <p className="card-desc">So&apos;rovlarda quyidagi sarlavha bo&apos;lishi shart.</p>
               <pre className="code-block">{`Authorization: Bearer <apiKey>`}</pre>
-              <div className="grid-2 mt-1">
+              <div className="endpoint-grid mt-1">
                 <div className="feature-card">
                   <div className="feature-title text-primary">POST /api/v1/encrypt</div>
                   <p className="feature-desc">JSON ma&apos;lumotni shifrlaydi va ciphertext qaytaradi.</p>
@@ -928,8 +930,6 @@ export default function HomePage() {
                   <div className="feature-title text-primary">POST /api/v1/decrypt</div>
                   <p className="feature-desc">Ciphertext ni ochib, asl JSON ma&apos;lumotni qaytaradi.</p>
                 </div>
-              </div>
-              <div className="grid-2 mt-1">
                 <div className="feature-card">
                   <div className="feature-title text-primary">GET /api/v1/health</div>
                   <p className="feature-desc">API key va Firestore holatini tekshiradi.</p>
@@ -948,6 +948,7 @@ export default function HomePage() {
             </section>
           </>
         )}
+        </div>
       </main>
 
       <footer className="footer">
