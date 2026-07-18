@@ -33,8 +33,7 @@ const templates: Record<
   sdk: {
     label: 'Universal SDK',
     language: 'javascript',
-    code: (url, key) => `// Copy mrcipher-sdk/ folder into your project
-import { MRCipherClient } from './mrcipher-sdk';
+    code: (url, key) => `import { MRCipherClient } from './mrcipher-sdk';
 
 const cipher = new MRCipherClient({
   serverUrl: "${url}",
@@ -43,24 +42,17 @@ const cipher = new MRCipherClient({
   decryptFields: ["phone", "otp"],
 });
 
-// Auto-encrypts request fields, auto-decrypts response fields
 const res = await cipher.fetch("https://your-api.com/api/send-otp", {
   method: "POST",
   body: JSON.stringify({ phone: "+998901234567" }),
 });
 const data = await res.json();
 
-// React hook
-import { useMRCipher } from './mrcipher-sdk/react';
-const { secureFetch, isLoading, error } = useMRCipher({
-  serverUrl: "${url}",
-  apiKey: "${key}",
-  encryptFields: ["phone", "otp"],
-  decryptFields: ["phone", "otp"],
-});`,
+// React:
+// const { secureFetch } = useMRCipher({ serverUrl, apiKey, encryptFields: [...] });`,
   },
   javascript: {
-    label: 'JavaScript / Node.js',
+    label: 'JavaScript',
     language: 'javascript',
     code: (url, key) => `const SERVER_URL = "${url}";
 const API_KEY = "${key}";
@@ -70,8 +62,7 @@ async function encrypt(content) {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      Authorization: \`Bearer \${API_KEY}\`,
-      origin: SERVER_URL,
+      "Authorization": \`Bearer \${API_KEY}\`,
     },
     body: JSON.stringify({ content }),
   });
@@ -83,8 +74,7 @@ async function decrypt(encrypted) {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      Authorization: \`Bearer \${API_KEY}\`,
-      origin: SERVER_URL,
+      "Authorization": \`Bearer \${API_KEY}\`,
     },
     body: JSON.stringify({ content: encrypted }),
   });
@@ -105,7 +95,6 @@ def encrypt(content):
         headers={
             "content-type": "application/json",
             "Authorization": f"Bearer {API_KEY}",
-            "origin": SERVER_URL,
         },
         json={"content": content},
     ).json()
@@ -116,10 +105,30 @@ def decrypt(encrypted):
         headers={
             "content-type": "application/json",
             "Authorization": f"Bearer {API_KEY}",
-            "origin": SERVER_URL,
         },
         json={"content": encrypted},
     ).json()`,
+  },
+  go: {
+    label: 'Go',
+    language: 'go',
+    code: (url, key) => `package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "net/http"
+)
+
+const SERVER_URL = "${url}"
+const API_KEY = "${key}"
+
+func post(path string, body []byte) (*http.Response, error) {
+    req, _ := http.NewRequest("POST", SERVER_URL+path, bytes.NewBuffer(body))
+    req.Header.Set("content-type", "application/json")
+    req.Header.Set("Authorization", "Bearer "+API_KEY)
+    return http.DefaultClient.Do(req)
+}`,
   },
   java: {
     label: 'Java',
@@ -137,36 +146,10 @@ public class MRCipherClient {
             .uri(URI.create(SERVER_URL + path))
             .header("content-type", "application/json")
             .header("Authorization", "Bearer " + API_KEY)
-            .header("origin", SERVER_URL)
             .POST(HttpRequest.BodyPublishers.ofString(body))
             .build();
         return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
-}`,
-  },
-  go: {
-    label: 'Go',
-    language: 'go',
-    code: (url, key) => `package main
-
-import (
-    "bytes"
-    "encoding/json"
-    "net/http"
-)
-
-const SERVER_URL = "${url}"
-const API_KEY = "${key}"
-
-func post(path string, body []byte) (*http.Response, error) {
-    req, err := http.NewRequest("POST", SERVER_URL+path, bytes.NewBuffer(body))
-    if err != nil {
-        return nil, err
-    }
-    req.Header.Set("content-type", "application/json")
-    req.Header.Set("Authorization", "Bearer "+API_KEY)
-    req.Header.Set("origin", SERVER_URL)
-    return http.DefaultClient.Do(req)
 }`,
   },
   php: {
@@ -184,31 +167,23 @@ function mr_request($path, $payload) {
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         "content-type: application/json",
         "Authorization: Bearer " . API_KEY,
-        "origin: " . SERVER_URL,
     ]);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    $response = curl_exec($ch);
-    curl_close($ch);
-    return json_decode($response, true);
+    return json_decode(curl_exec($ch), true);
 }`,
   },
   curl: {
     label: 'cURL',
     language: 'bash',
-    code: (url, key) => `curl -X POST ${url}/api/v1/encrypt \
-  -H "content-type: application/json" \
-  -H "Authorization: Bearer ${key}" \
-  -H "origin: ${url}" \
-  -d '{"content":{"email":"user@example.com"}}'`,
+    code: (url, key) => `curl -X POST ${url}/api/v1/encrypt \\
+  -H "content-type: application/json" \\
+  -H "Authorization: Bearer ${key}" \\
+  -d '{"content":{"phone":"+998901234567"}}'`,
   },
   html: {
-    label: 'HTML Fetch',
+    label: 'HTML',
     language: 'html',
-    code: (url, key) => `<!DOCTYPE html>
-<html>
-<head><title>MRcipher demo</title></head>
-<body>
-<script>
+    code: (url, key) => `<script type="module">
 const SERVER_URL = "${url}";
 const API_KEY = "${key}";
 
@@ -223,9 +198,7 @@ async function encrypt(content) {
   });
   return res.json();
 }
-</script>
-</body>
-</html>`,
+</script>`,
   },
 };
 
@@ -244,29 +217,13 @@ export function CodeTemplates({ serverUrl, apiKey }: CodeTemplatesProps) {
   }
 
   return (
-    <div className="mt-2">
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.5rem',
-          marginBottom: '0.75rem',
-        }}
-      >
+    <div>
+      <div className="tab-list">
         {(Object.keys(templates) as TemplateKey[]).map((key) => (
           <button
             key={key}
+            className={`tab ${active === key ? 'active' : ''}`}
             onClick={() => setActive(key)}
-            style={{
-              padding: '0.4rem 0.75rem',
-              borderRadius: '0.375rem',
-              border: '1px solid var(--border)',
-              background: active === key ? 'var(--primary)' : 'var(--bg-input)',
-              color: active === key ? '#020617' : 'var(--text)',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-            }}
           >
             {templates[key].label}
           </button>
@@ -277,7 +234,7 @@ export function CodeTemplates({ serverUrl, apiKey }: CodeTemplatesProps) {
         style={{
           background: '#020617',
           border: '1px solid var(--border)',
-          borderRadius: 'var(--radius)',
+          borderRadius: 'var(--radius-sm)',
           overflow: 'hidden',
         }}
       >
@@ -286,25 +243,17 @@ export function CodeTemplates({ serverUrl, apiKey }: CodeTemplatesProps) {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '0.5rem 1rem',
+            padding: '0.625rem 1rem',
             background: 'var(--bg-card)',
             borderBottom: '1px solid var(--border)',
           }}
         >
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>
             {activeTemplate.label}
           </span>
           <button
+            className="btn btn-ghost btn-sm"
             onClick={copyCode}
-            style={{
-              padding: '0.25rem 0.75rem',
-              background: copied ? 'var(--success)' : 'transparent',
-              color: copied ? '#020617' : 'var(--text-muted)',
-              border: '1px solid var(--border)',
-              borderRadius: '0.375rem',
-              cursor: 'pointer',
-              fontSize: '0.8rem',
-            }}
           >
             {copied ? 'Nusxa olindi!' : 'Nusxa olish'}
           </button>

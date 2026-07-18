@@ -34,13 +34,13 @@ export default function HomePage() {
 
       const json = await res.json();
       if (!res.ok || !json.success) {
-        setError(json.error?.message || 'API key lar ro&apos;yxatini yuklashda xatolik');
+        setError(json.error?.message || 'API keylar ro\'yxatini yuklashda xatolik');
         return;
       }
 
       setApiKeys(json.data.keys ?? []);
     } catch (err) {
-      setError('Tarmoq xatosi: API key lar ro&apos;yxati yuklanmadi');
+      setError('Tarmoq xatosi: API keylar ro\'yxati yuklanmadi');
     }
   }, [refreshIdToken]);
 
@@ -98,12 +98,11 @@ export default function HomePage() {
     });
   }
 
-
   if (loading) {
     return (
       <div className="empty-state">
         <Logo size={48} />
-        <p>Yuklanmoqda...</p>
+        <p className="text-muted">Yuklanmoqda...</p>
       </div>
     );
   }
@@ -113,111 +112,98 @@ export default function HomePage() {
       <nav className="navbar">
         <div className="navbar-inner container">
           <a href="/" className="brand">
-            <Logo size={32} />
+            <Logo size={28} />
             MRcipher
           </a>
           {user ? (
             <div className="nav-user">
-              <span className="text-muted">{user.email}</span>
-              <button className="btn btn-secondary" onClick={logout}>
+              <span className="email">{user.email}</span>
+              <button className="btn btn-ghost btn-sm" onClick={logout}>
                 Chiqish
               </button>
             </div>
           ) : (
-            <button className="btn btn-primary" onClick={signInWithGoogle}>
+            <button className="btn btn-primary btn-sm" onClick={signInWithGoogle}>
               Google bilan kirish
             </button>
           )}
         </div>
       </nav>
 
-      <main style={{ padding: '2rem 0' }}>
+      <main style={{ padding: '2.5rem 0' }}>
         {!user ? (
-          <div className="card empty-state">
-            <Logo size={64} />
-            <h1 style={{ marginBottom: '0.5rem' }}>MRcipher</h1>
+          <section className="hero">
+            <div className="badge">
+              <span className="badge-dot" />
+              AES-256-GCM Encryption-as-a-Service
+            </div>
+
+            <Logo size={80} />
+            <h1 style={{ marginTop: '1.5rem' }}>
+              Himoyalang<span>.</span> Har qanday ma&apos;lumot.
+            </h1>
+            <p>
+              MRcipher serverlaringiz va ma&apos;lumotlaringiz o&apos;rtasida shifrlash
+              qatlami bo&apos;lib xizmat qiladi. Bir marta ulang, qolganini biz hal
+              qilamiz.
+            </p>
+
             {signInError && (
-              <div
-                style={{
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  borderRadius: 'var(--radius)',
-                  padding: '0.875rem 1rem',
-                  color: 'var(--danger)',
-                  fontSize: '0.9rem',
-                  marginBottom: '1rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  maxWidth: '420px',
-                }}
-              >
-                <span>{signInError}</span>
-                <button
-                  onClick={clearSignInError}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text)',
-                    padding: '0.375rem 0.75rem',
-                    borderRadius: '0.375rem',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  Yopish
-                </button>
+              <div className="alert alert-error" style={{ maxWidth: 420, margin: '0 auto 1rem' }}>
+                <span className="alert-icon">!</span>
+                <div style={{ flex: 1 }}>
+                  {signInError}
+                  <button className="btn btn-ghost btn-sm" onClick={clearSignInError} style={{ marginLeft: '0.5rem' }}>
+                    Yopish
+                  </button>
+                </div>
               </div>
             )}
-            <p className="text-muted" style={{ maxWidth: '420px' }}>
-              API-first Encryption-as-a-Service. AES-256-GCM shifrlash bilan
-              har qanday JSON malumotni himoyalang.
-            </p>
-            <button
-              className="btn btn-primary"
-              onClick={signInWithGoogle}
-              style={{ marginTop: '1rem' }}
-            >
+
+            <button className="btn btn-primary" onClick={signInWithGoogle}>
               Google bilan boshlash
             </button>
-          </div>
+
+            <div className="grid-3 mt-2" style={{ maxWidth: 900, margin: '3rem auto 0' }}>
+              <div className="feature-card">
+                <div className="feature-icon"><span>&#128274;</span></div>
+                <div className="feature-title">AES-256-GCM</div>
+                <p className="feature-desc">Zamonaviy autentifikatsiyalik shifrlash. Har bir foydalanuvchi o&apos;z kalitiga ega.</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon"><span>&#9889;</span></div>
+                <div className="feature-title">Drop-in SDK</div>
+                <p className="feature-desc">Bir necha qatorda ulang. Avtomatik shifrlash va ochish — JavaScript, Python, Go, PHP, Java.</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon"><span>&#128172;</span></div>
+                <div className="feature-title">API-first</div>
+                <p className="feature-desc">Har qanday backendga mos. Faqat sozlangan field nomlarini bering, qolganini SDK qiladi.</p>
+              </div>
+            </div>
+          </section>
         ) : (
           <>
-            <section className="card" style={{ marginBottom: '1.5rem' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '1rem',
-                }}
-              >
+            <section className="card" style={{ marginBottom: '1.25rem' }}>
+              <div className="card-header">
                 <div>
-                  <h2 style={{ margin: '0 0 0.25rem', fontSize: '1.25rem' }}>
-                    API key boshqaruvi
-                  </h2>
-                  <p className="text-muted" style={{ margin: 0 }}>
-                    {user.email}
-                  </p>
+                  <div className="card-title">Xush kelibsiz</div>
+                  <p className="card-desc" style={{ margin: 0 }}>{user.email}</p>
                 </div>
-                <button className="btn btn-secondary" onClick={logout}>
-                  Chiqish
-                </button>
+                <button className="btn btn-secondary btn-sm" onClick={logout}>Chiqish</button>
               </div>
             </section>
 
-            <section className="card" style={{ marginBottom: '1.5rem' }}>
-              <h3 className="card-title">Yangi API key yaratish</h3>
-              <p className="card-desc">
-                Asl key faqat bir marta ko&apos;rsatiladi va tiklab
-                bo&apos;lmaydi. Maxfiy saqlang.
-              </p>
+            <section className="card" style={{ marginBottom: '1.25rem' }}>
+              <div className="card-header">
+                <div>
+                  <div className="card-title">Yangi API key</div>
+                  <p className="card-desc" style={{ margin: 0 }}>Asl key faqat bir marta ko&apos;rsatiladi va tiklab bo&apos;lmaydi.</p>
+                </div>
+              </div>
 
-              <div className="generator-grid" style={{ marginBottom: '1rem' }}>
-                <label className="block">
+              <div className="form-row">
+                <label className="block" style={{ marginBottom: 0 }}>
                   API key nomi
                   <input
                     type="text"
@@ -228,55 +214,44 @@ export default function HomePage() {
                     maxLength={100}
                   />
                 </label>
-
                 <button
                   className="btn btn-primary"
                   onClick={createApiKey}
                   disabled={apiKeyLoading}
                 >
-                  {apiKeyLoading ? 'Yaratilmoqda...' : 'API key yaratish'}
+                  {apiKeyLoading ? 'Yaratilmoqda...' : 'Yaratish'}
                 </button>
               </div>
 
               {freshApiKey && (
-                <div className="code-block" style={{ marginBottom: '1rem' }}>
-                  <p
-                    style={{
-                      margin: '0 0 0.5rem',
-                      fontSize: '0.875rem',
-                      color: 'var(--text-muted)',
-                    }}
-                  >
-                    Yangi API key (faqat bir marta):
-                  </p>
-                  <code
-                    style={{
-                      wordBreak: 'break-all',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '0.9rem',
-                    }}
-                  >
-                    {freshApiKey}
-                  </code>
+                <div className="secret-box">
+                  <div className="secret-label">Yangi API key — faqat bir marta nusxa oling</div>
+                  <div className="secret-value">{freshApiKey}</div>
                   <button
+                    className="btn btn-secondary btn-sm"
                     onClick={copyApiKey}
-                    style={{
-                      marginTop: '0.75rem',
-                      padding: '0.375rem 0.75rem',
-                      background: copied ? 'var(--success)' : 'transparent',
-                      color: copied ? '#020617' : 'var(--text)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '0.375rem',
-                      cursor: 'pointer',
-                      fontSize: '0.875rem',
-                    }}
+                    style={{ marginTop: '0.75rem' }}
                   >
-                    {copied ? 'Nusxa olindi!' : 'API key ni nusxa olish'}
+                    {copied ? 'Nusxa olindi!' : 'Nusxa olish'}
                   </button>
                 </div>
               )}
 
-              {freshApiKey && (
+              {error && (
+                <div className="alert alert-error mt-1">
+                  <span className="alert-icon">!</span>
+                  <div>{error}</div>
+                </div>
+              )}
+            </section>
+
+            {freshApiKey && (
+              <section className="card" style={{ marginBottom: '1.25rem' }}>
+                <div className="card-title">Integratsiya qilish</div>
+                <p className="card-desc">
+                  Quyidagi template&apos;lardan birini loyihangizga nusxa oling.
+                  SDK avtomatik shifrlaydi va ochadi.
+                </p>
                 <CodeTemplates
                   serverUrl={
                     typeof window !== 'undefined'
@@ -285,120 +260,57 @@ export default function HomePage() {
                   }
                   apiKey={freshApiKey}
                 />
-              )}
-
-              {error && (
-                <p style={{ color: 'var(--danger)', marginTop: '0.75rem' }}>
-                  {error}
-                </p>
-              )}
-            </section>
+              </section>
+            )}
 
             <section className="card">
-              <h3 className="card-title">Saqlangan API key lar</h3>
-              <p className="card-desc">
-                Faqat nom va oxirgi 4 ta belgi ko&apos;rsatiladi. Asl key
-                tiklab bo&apos;lmaydi.
-              </p>
+              <div className="card-title">Saqlangan API keylar</div>
+              <p className="card-desc">Faqat nom va oxirgi 4 ta belgi ko&apos;rsatiladi.</p>
 
               {apiKeys.length === 0 ? (
-                <p className="text-muted">Hali API key yaratilmagan.</p>
+                <div className="key-empty">
+                  <div className="key-empty-icon"><span>&#128273;</span></div>
+                  <div>Hali API key yaratilmagan</div>
+                </div>
               ) : (
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                <div className="key-list">
                   {apiKeys.map((key) => (
-                    <li
-                      key={key.id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '0.75rem 1rem',
-                        background: 'var(--bg-input)',
-                        border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius)',
-                        marginBottom: '0.5rem',
-                      }}
-                    >
-                      <div>
-                        <strong>{key.name}</strong>
-                        <div
-                          style={{
-                            fontSize: '0.875rem',
-                            color: 'var(--text-muted)',
-                            marginTop: '0.25rem',
-                            fontFamily: 'var(--font-mono)',
-                          }}
-                        >
-                          mr_····{key.prefix}
-                          {key.revoked && (
-                            <span
-                              style={{
-                                color: 'var(--danger)',
-                                marginLeft: '0.5rem',
-                                fontFamily: 'var(--font-sans)',
-                              }}
-                            >
-                              bekor qilingan
-                            </span>
-                          )}
+                    <div key={key.id} className="key-item">
+                      <div className="key-info">
+                        <div className="key-name">{key.name}</div>
+                        <div className="key-meta">
+                          <span className="key-prefix">mr_····{key.prefix}</span>
+                          <span className="key-date">{new Date(key.created_at).toLocaleDateString('uz-UZ')}</span>
                         </div>
                       </div>
-                      <span
-                        style={{
-                          fontSize: '0.8rem',
-                          color: 'var(--text-muted)',
-                        }}
-                      >
-                        {new Date(key.created_at).toLocaleDateString('uz-UZ')}
-                      </span>
-                    </li>
+                      {key.revoked && <span className="key-badge revoked">Bekor qilingan</span>}
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </section>
 
-            <section className="card" style={{ marginTop: '1.5rem' }}>
-              <h3 className="card-title">Universal SDK</h3>
-              <p className="card-desc">
-                Bir marta sozlang va istalgan loyiha serveriga ulang.
-                MRcipher avtomatik shifrlaydi va ochib beradi.
-              </p>
-              <pre className="code-block">{`import { MRCipherClient } from './mrcipher-sdk';
-
-const cipher = new MRCipherClient({
-  serverUrl: '${typeof window !== 'undefined' ? window.location.origin : 'https://mrcipher.vercel.app'}',
-  apiKey: '${freshApiKey || 'mr_...'}',
-  encryptFields: ['phone', 'otp', 'email'],
-  decryptFields: ['phone', 'otp'],
-});
-
-const res = await cipher.fetch('https://your-api.com/api/send-otp', {
-  method: 'POST',
-  body: JSON.stringify({ phone: '+998901234567' }),
-});`}</pre>
-              <p className="card-desc" style={{ marginTop: '1rem' }}>
-                Serverda ham shunday — Next.js, Express, Laravel, Django, Go —
-                hamma joyda faqat sozlangan field nomlarini berib qo&apos;yasiz.
-              </p>
-            </section>
-
-            <section className="card" style={{ marginTop: '1.5rem' }}>
-              <h3 className="card-title">Endpointlar</h3>
-              <p className="card-desc">
-                Har bir so&apos;rovda <code>Authorization: Bearer &lt;apiKey&gt;</code>
-                sarlavhasini yuboring.
-              </p>
-              <pre className="code-block">{`POST /api/v1/encrypt
-POST /api/v1/decrypt`}</pre>
+            <section className="card" style={{ marginTop: '1.25rem' }}>
+              <div className="card-title">Endpointlar</div>
+              <p className="card-desc">So&apos;rovlarda quyidagi sarlavha bo&apos;lishi shart.</p>
+              <pre className="code-block">{`Authorization: Bearer <apiKey>`}</pre>
+              <div className="grid-2 mt-1">
+                <div className="feature-card">
+                  <div className="feature-title text-primary">POST /api/v1/encrypt</div>
+                  <p className="feature-desc">JSON ma&apos;lumotni shifrlaydi va ciphertext qaytaradi.</p>
+                </div>
+                <div className="feature-card">
+                  <div className="feature-title text-primary">POST /api/v1/decrypt</div>
+                  <p className="feature-desc">Ciphertext ni ochib, asl JSON ma&apos;lumotni qaytaradi.</p>
+                </div>
+              </div>
             </section>
           </>
         )}
       </main>
 
       <footer className="footer">
-        <p className="text-muted">
-          MRcipher — AES-256-GCM Encryption-as-a-Service
-        </p>
+        <p className="text-muted">MRcipher — AES-256-GCM Encryption-as-a-Service</p>
       </footer>
     </div>
   );
