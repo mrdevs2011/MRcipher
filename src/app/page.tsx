@@ -618,13 +618,6 @@ export default function HomePage() {
                   </select>
                 </label>
 
-                {translatorBoundRawKey && (
-                  <div className='key-meta key-status'>
-                    <span className='status-success'>
-                      <CheckIcon size={14} /> Briktirilgan · mr_···{translatorBoundRawKey.slice(-4)}
-                    </span>
-                  </div>
-                )}
 
                 {!translatorBoundRawKey && translatorBoundKeyId === 'fresh' && (
                   <div className='key-meta key-status'>
