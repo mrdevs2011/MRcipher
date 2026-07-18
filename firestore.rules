@@ -2,14 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Default deny all client-side access.
-    // Every read/write must go through Next.js API routes using Firebase Admin SDK.
+    // Every sensitive read/write must go through Next.js API routes via Firebase Admin SDK.
     match /{document=**} {
       allow read, write: if false;
     }
 
     // Server-managed user documents.
-    // The Admin SDK bypasses these rules, but if any client ever tries direct access,
-    // it is denied here.
+    // The Admin SDK bypasses these rules; direct client access is denied.
     match /users/{uid} {
       allow read: if false;
       allow write: if false;
@@ -47,11 +46,15 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Optional: allow users to read their own public profile if you ever add one.
-    // Currently disabled; enable only when needed.
-    // match /profiles/{uid} {
-    //   allow read: if request.auth != null && request.auth.uid == uid;
-    //   allow write: if false;
-    // }
+    // Test app messages: encrypted chat demo.
+    // - Authenticated users can create messages.
+    // - Anyone can read messages (required for real-time two-phone demo).
+    // - Updates and deletes are forbidden; messages are append-only.
+    match /messages/{messageId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if false;
+      allow delete: if false;
+    }
   }
 }
