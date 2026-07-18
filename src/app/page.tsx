@@ -249,6 +249,86 @@ export default function HomePage() {
                 </div>
               )}
 
+              {apiKey && (
+                <div className="mt-2">
+                  <h3 className="card-title">Integratsiya namunasi</h3>
+                  <p className="card-desc">
+                    Ushbu kodni dasturingizga qo&apos;shing. Kod ichidagi{' '}
+                    <code>API_KEY</code> o&apos;rniga yuqoridagi API key ni
+                    yozing.
+                  </p>
+                  <pre className="code-block">
+                    {`const SERVER_URL = "${typeof window !== 'undefined' ? window.location.origin : 'https://mrcipher.vercel.app'}";
+const API_KEY = "${apiKey}";
+
+async function encrypt(content) {
+  const res = await fetch(\`\${SERVER_URL}/api/v1/encrypt\`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      Authorization: \`Bearer \${API_KEY}\`,
+      origin: SERVER_URL,
+    },
+    body: JSON.stringify({ content }),
+  });
+  return res.json();
+}
+
+async function decrypt(encrypted) {
+  const res = await fetch(\`\${SERVER_URL}/api/v1/decrypt\`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      Authorization: \`Bearer \${API_KEY}\`,
+      origin: SERVER_URL,
+    },
+    body: JSON.stringify({ content: encrypted }),
+  });
+  return res.json();
+}`}
+                  </pre>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      const code = `const SERVER_URL = "${typeof window !== 'undefined' ? window.location.origin : 'https://mrcipher.vercel.app'}";
+const API_KEY = "${apiKey}";
+
+async function encrypt(content) {
+  const res = await fetch(\`\${SERVER_URL}/api/v1/encrypt\`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      Authorization: \`Bearer \${API_KEY}\`,
+      origin: SERVER_URL,
+    },
+    body: JSON.stringify({ content }),
+  });
+  return res.json();
+}
+
+async function decrypt(encrypted) {
+  const res = await fetch(\`\${SERVER_URL}/api/v1/decrypt\`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      Authorization: \`Bearer \${API_KEY}\`,
+      origin: SERVER_URL,
+    },
+    body: JSON.stringify({ content: encrypted }),
+  });
+  return res.json();
+}`;
+                      navigator.clipboard.writeText(code).then(() => {
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      });
+                    }}
+                  >
+                    {copied ? 'Nusxa olindi!' : 'Kodni nusxa olish'}
+                  </button>
+                </div>
+              )}
+
               {error && (
                 <p style={{ color: 'var(--danger)', marginTop: '0.75rem' }}>
                   {error}
