@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { MRCipherClient } from './client';
 import type { MRCipherOptions } from './types';
 
@@ -27,7 +27,8 @@ export function useMRCipher(options: MRCipherOptions) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const client = new MRCipherClient(options);
+  const optionsKey = useMemo(() => JSON.stringify(options), [options]);
+  const client = useMemo(() => new MRCipherClient(JSON.parse(optionsKey) as MRCipherOptions), [optionsKey]);
 
   const encrypt = useCallback(
     async (value: unknown) => {
@@ -112,11 +113,16 @@ export function useEncryptedField(options: Pick<MRCipherOptions, 'serverUrl' | '
   const [encrypted, setEncrypted] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const client = new MRCipherClient({
-    ...options,
-    encryptFields: [],
-    decryptFields: [],
-  });
+  const optionsKey = useMemo(() => JSON.stringify(options), [options]);
+  const client = useMemo(
+    () =>
+      new MRCipherClient({
+        ...(JSON.parse(optionsKey) as Pick<MRCipherOptions, 'serverUrl' | 'apiKey'>),
+        encryptFields: [],
+        decryptFields: [],
+      }),
+    [optionsKey],
+  );
 
   const encrypt = useCallback(async () => {
     if (!rawValue) return;

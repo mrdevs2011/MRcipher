@@ -5,6 +5,9 @@ import {
   createOrUpdateUser,
   createApiKey,
   listApiKeysByUser,
+  revokeApiKey,
+  deleteApiKey,
+  updateApiKey,
 } from '@/lib/firestore/users';
 import { applyCorsHeaders, getOriginHeader } from '@/lib/middleware/cors';
 import { ApiError } from '@/lib/utils/errors';
@@ -36,7 +39,8 @@ import { GLOBAL_ALLOWED_ORIGINS } from '@/lib/env';
  *
  * Body:
  *   {
- *     "name": "Production server"
+ *     "name": "Production server",
+ *     "allowed_origins": ["https://example.com"]  // optional
  *   }
  *
  * Response:
@@ -44,9 +48,27 @@ import { GLOBAL_ALLOWED_ORIGINS } from '@/lib/env';
  *     "success": true,
  *     "data": {
  *       "apiKey": "mr_...",
- *       "key": { id, name, prefix, created_at, revoked }
+ *       "key": { id, name, prefix, created_at, revoked, allowed_origins }
  *     }
  *   }
+ */
+
+/**
+ * PATCH /api/v1/keys?id=<docId>
+ *
+ * Updates API key metadata (name and/or allowed_origins).
+ *
+ * Body:
+ *   {
+ *     "name": "Updated name",
+ *     "allowed_origins": ["https://example.com"]
+ *   }
+ */
+
+/**
+ * DELETE /api/v1/keys?id=<docId>
+ *
+ * Permanently deletes an API key. Only the owner can delete their own key.
  */
 
 const createKeySchema = z.object({
@@ -54,6 +76,12 @@ const createKeySchema = z.object({
     .string()
     .min(1, 'API key nomi kiritilishi shart')
     .max(100, 'API key nomi 100 ta belgidan oshmasligi kerak'),
+  allowed_origins: z.array(z.string()).max(10).optional(),
+});
+
+const updateKeySchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  allowed_origins: z.array(z.string()).max(10).optional(),
 });
 
 async function verifyIdTokenFromHeader(
@@ -163,6 +191,7 @@ export async function POST(req: NextRequest) {
       uid,
       email,
       name: parsed.data.name,
+      allowedOrigins: parsed.data.allowed_origins,
     });
 
     const allowedOrigin = origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*';
@@ -177,6 +206,100 @@ export async function POST(req: NextRequest) {
     return applyCorsHeaders(response, allowedOrigin);
   } catch (err) {
     logServerError('Create key endpoint error', err, {
+      origin,
+      method: req.method,
+      path: req.nextUrl.pathname,
+    });
+
+    const response = errorResponse(err);
+    return applyCorsHeaders(
+      response,
+      origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*',
+    );
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  const origin = getOriginHeader(req);
+
+  try {
+    const { uid } = await verifyIdTokenFromHeader(req);
+    const docId = req.nextUrl.searchParams.get('id');
+    if (!docId) {
+      throw new ApiError('Missing key id query parameter', 400, 'VALIDATION_ERROR');
+    }
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      throw new ApiError(
+        'Invalid JSON body. Expected: { "name"?: "...", "allowed_origins"?: [...] }',
+        400,
+        'VALIDATION_ERROR',
+      );
+    }
+
+    const parsed = updateKeySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(
+        parsed.error.errors.map((e) => e.message).join('; '),
+        400,
+        'VALIDATION_ERROR',
+      );
+    }
+
+    const ok = await updateApiKey(uid, docId, parsed.data);
+    if (!ok) {
+      throw new ApiError(
+        'API key not found or you do not have permission to update it',
+        404,
+        'NOT_FOUND',
+      );
+    }
+
+    const allowedOrigin = origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*';
+    const response = successResponse({ updated: true }, { status: 200 });
+    return applyCorsHeaders(response, allowedOrigin);
+  } catch (err) {
+    logServerError('Update key endpoint error', err, {
+      origin,
+      method: req.method,
+      path: req.nextUrl.pathname,
+    });
+
+    const response = errorResponse(err);
+    return applyCorsHeaders(
+      response,
+      origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*',
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const origin = getOriginHeader(req);
+
+  try {
+    const { uid } = await verifyIdTokenFromHeader(req);
+    const docId = req.nextUrl.searchParams.get('id');
+    if (!docId) {
+      throw new ApiError('Missing key id query parameter', 400, 'VALIDATION_ERROR');
+    }
+
+    const ok = await deleteApiKey(uid, docId);
+    if (!ok) {
+      throw new ApiError(
+        'API key not found or you do not have permission to delete it',
+        404,
+        'NOT_FOUND',
+      );
+    }
+
+    const allowedOrigin = origin ?? GLOBAL_ALLOWED_ORIGINS[0] ?? '*';
+    const response = successResponse({ deleted: true }, { status: 200 });
+    return applyCorsHeaders(response, allowedOrigin);
+  } catch (err) {
+    logServerError('Delete key endpoint error', err, {
       origin,
       method: req.method,
       path: req.nextUrl.pathname,

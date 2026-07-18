@@ -33,6 +33,8 @@ export class MRCipherClient {
   private readonly encryptFields: Set<string>;
   private readonly decryptFields: Set<string>;
   private readonly timeoutMs: number;
+  private readonly retries: number;
+  private readonly retryDelayMs: number;
 
   constructor(options: MRCipherOptions) {
     this.serverUrl = options.serverUrl.replace(/\/$/, '');
@@ -40,6 +42,8 @@ export class MRCipherClient {
     this.encryptFields = new Set(options.encryptFields ?? []);
     this.decryptFields = new Set(options.decryptFields ?? []);
     this.timeoutMs = options.timeoutMs ?? 30000;
+    this.retries = Math.max(0, options.retries ?? 2);
+    this.retryDelayMs = Math.max(0, options.retryDelayMs ?? 500);
   }
 
   private headers(): Record<string, string> {
@@ -50,29 +54,61 @@ export class MRCipherClient {
     };
   }
 
+  private isRetryableError(err: unknown): boolean {
+    if (!(err instanceof Error)) return false;
+    const message = err.message.toLowerCase();
+    return (
+      message.includes('fetch') ||
+      message.includes('network') ||
+      message.includes('abort') ||
+      message.includes('timeout') ||
+      message.includes('failed') ||
+      err.name === 'AbortError' ||
+      err.name === 'TypeError'
+    );
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   private async post<T>(path: string, body: unknown): Promise<T> {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    let lastError: Error | undefined;
 
-    try {
-      const res = await fetch(`${this.serverUrl}${path}`, {
-        method: 'POST',
-        headers: this.headers(),
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
+    for (let attempt = 0; attempt <= this.retries; attempt += 1) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
-      const json = (await res.json()) as T | { success: false; error: { message: string } };
-      if (!res.ok || (json as any).success === false) {
-        const message = (json as any).error?.message ?? `MRcipher request failed: ${res.status}`;
-        throw new Error(message);
+      try {
+        const res = await fetch(`${this.serverUrl}${path}`, {
+          method: 'POST',
+          headers: this.headers(),
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+
+        const json = (await res.json()) as T | { success: false; error: { message: string } };
+        if (!res.ok || (json as any).success === false) {
+          const message = (json as any).error?.message ?? `MRcipher request failed: ${res.status}`;
+          throw new Error(message);
+        }
+        return json as T;
+      } catch (err) {
+        clearTimeout(timer);
+        lastError = err instanceof Error ? err : new Error(String(err));
+
+        // Do not retry on authentication or client validation errors.
+        if (!this.isRetryableError(lastError) || attempt === this.retries) {
+          throw lastError;
+        }
+
+        const delay = this.retryDelayMs * 2 ** attempt;
+        await this.sleep(delay);
       }
-      return json as T;
-    } catch (err) {
-      clearTimeout(timer);
-      throw err;
     }
+
+    throw lastError ?? new Error('MRcipher request failed');
   }
 
   /**

@@ -10,10 +10,14 @@ export default function HomePage() {
   const { user, loading, signInWithGoogle, logout, refreshIdToken, signInError, clearSignInError } = useAuth();
   const [apiKeys, setApiKeys] = useState<ApiKeyPublicView[]>([]);
   const [newKeyName, setNewKeyName] = useState('');
+  const [newKeyOrigins, setNewKeyOrigins] = useState('');
   const [freshApiKey, setFreshApiKey] = useState('');
   const [apiKeyLoading, setApiKeyLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editOrigins, setEditOrigins] = useState('');
 
   const loadApiKeys = useCallback(async () => {
     setError('');
@@ -63,6 +67,11 @@ export default function HomePage() {
         return;
       }
 
+      const allowedOrigins = newKeyOrigins
+        .split(/\n|,/)
+        .map((o) => o.trim())
+        .filter(Boolean);
+
       const res = await fetch('/api/v1/keys', {
         method: 'POST',
         headers: {
@@ -70,7 +79,10 @@ export default function HomePage() {
           Authorization: `Bearer ${freshToken}`,
           origin: typeof window !== 'undefined' ? window.location.origin : '',
         },
-        body: JSON.stringify({ name: newKeyName.trim() || 'Nomsiz kalit' }),
+        body: JSON.stringify({
+          name: newKeyName.trim() || 'Nomsiz kalit',
+          allowed_origins: allowedOrigins.length > 0 ? allowedOrigins : undefined,
+        }),
       });
 
       const json = await res.json();
@@ -82,9 +94,98 @@ export default function HomePage() {
 
       setFreshApiKey(json.data.apiKey);
       setNewKeyName('');
+      setNewKeyOrigins('');
       await loadApiKeys();
     } catch (err) {
       setError('Tarmoq xatosi: API key yaratilmadi');
+    } finally {
+      setApiKeyLoading(false);
+    }
+  }
+
+  async function revokeKey(id: string) {
+    setApiKeyLoading(true);
+    setError('');
+    try {
+      const freshToken = await refreshIdToken();
+      if (!freshToken) {
+        setError('ID token topilmadi, qayta kiring.');
+        return;
+      }
+
+      const res = await fetch(`/api/v1/keys?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${freshToken}`,
+          origin: typeof window !== 'undefined' ? window.location.origin : '',
+        },
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error?.message || 'API keyni o\'chirishda xatolik');
+        return;
+      }
+      await loadApiKeys();
+    } catch (err) {
+      setError('Tarmoq xatosi: API keyni o\'chirishda xatolik');
+    } finally {
+      setApiKeyLoading(false);
+    }
+  }
+
+  function startEdit(key: ApiKeyPublicView) {
+    setEditingKey(key.id);
+    setEditName(key.name);
+    setEditOrigins((key.allowed_origins ?? []).join('\n'));
+  }
+
+  function cancelEdit() {
+    setEditingKey(null);
+    setEditName('');
+    setEditOrigins('');
+  }
+
+  async function saveEdit(id: string) {
+    setApiKeyLoading(true);
+    setError('');
+    try {
+      const freshToken = await refreshIdToken();
+      if (!freshToken) {
+        setError('ID token topilmadi, qayta kiring.');
+        return;
+      }
+
+      const allowedOrigins = editOrigins
+        .split(/\n|,/)
+        .map((o) => o.trim())
+        .filter(Boolean);
+
+      const res = await fetch(`/api/v1/keys?id=${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: {
+          'content-type': 'application/json',
+          Authorization: `Bearer ${freshToken}`,
+          origin: typeof window !== 'undefined' ? window.location.origin : '',
+        },
+        body: JSON.stringify({
+          name: editName.trim(),
+          allowed_origins: allowedOrigins,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error?.message || 'API keyni yangilashda xatolik');
+        return;
+      }
+
+      setEditingKey(null);
+      setEditName('');
+      setEditOrigins('');
+      await loadApiKeys();
+    } catch (err) {
+      setError('Tarmoq xatosi: API keyni yangilashda xatolik');
     } finally {
       setApiKeyLoading(false);
     }
@@ -223,6 +324,20 @@ export default function HomePage() {
                 </button>
               </div>
 
+              <label className="block mt-1" style={{ marginBottom: 0 }}>
+                Ruxsat etilgan domenlar (ixtiyoriy)
+                <textarea
+                  className="textarea"
+                  rows={2}
+                  value={newKeyOrigins}
+                  onChange={(e) => setNewKeyOrigins(e.target.value)}
+                  placeholder="https://example.com&#10;https://app.example.com"
+                />
+                <span className="input-hint">
+                  Bo&apos;sh qoldirilsa barcha domenlarga ruxsat. Har bir qatorda bitta domen.
+                </span>
+              </label>
+
               {freshApiKey && (
                 <div className="secret-box">
                   <div className="secret-label">Yangi API key — faqat bir marta nusxa oling</div>
@@ -275,15 +390,59 @@ export default function HomePage() {
               ) : (
                 <div className="key-list">
                   {apiKeys.map((key) => (
-                    <div key={key.id} className="key-item">
+                    <div key={key.id} className={`key-item ${key.revoked ? 'key-item-revoked' : ''}`}>
                       <div className="key-info">
-                        <div className="key-name">{key.name}</div>
-                        <div className="key-meta">
-                          <span className="key-prefix">mr_····{key.prefix}</span>
-                          <span className="key-date">{new Date(key.created_at).toLocaleDateString('uz-UZ')}</span>
-                        </div>
+                        {editingKey === key.id ? (
+                          <>
+                            <input
+                              type="text"
+                              className="input input-sm"
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              maxLength={100}
+                              style={{ marginBottom: '0.5rem' }}
+                            />
+                            <textarea
+                              className="textarea textarea-sm"
+                              rows={2}
+                              value={editOrigins}
+                              onChange={(e) => setEditOrigins(e.target.value)}
+                              placeholder="https://example.com"
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <div className="key-name">{key.name}</div>
+                            <div className="key-meta">
+                              <span className="key-prefix">mr_····{key.prefix}</span>
+                              <span className="key-date">{new Date(key.created_at).toLocaleDateString('uz-UZ')}</span>
+                              {key.last_used_at && (
+                                <span className="key-date">Oxirgi ishlatilgan: {new Date(key.last_used_at).toLocaleDateString('uz-UZ')}</span>
+                              )}
+                            </div>
+                            {key.allowed_origins && key.allowed_origins.length > 0 && (
+                              <div className="key-origins">
+                                {key.allowed_origins.join(', ')}
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
-                      {key.revoked && <span className="key-badge revoked">Bekor qilingan</span>}
+                      <div className="key-actions">
+                        {key.revoked ? (
+                          <span className="key-badge revoked">Bekor qilingan</span>
+                        ) : editingKey === key.id ? (
+                          <>
+                            <button className="btn btn-ghost btn-sm" onClick={cancelEdit}>Bekor</button>
+                            <button className="btn btn-primary btn-sm" onClick={() => saveEdit(key.id)} disabled={apiKeyLoading}>Saqlash</button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="btn btn-ghost btn-sm" onClick={() => startEdit(key)}>Tahrirlash</button>
+                            <button className="btn btn-danger btn-sm" onClick={() => revokeKey(key.id)} disabled={apiKeyLoading}>O&apos;chirish</button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -302,6 +461,16 @@ export default function HomePage() {
                 <div className="feature-card">
                   <div className="feature-title text-primary">POST /api/v1/decrypt</div>
                   <p className="feature-desc">Ciphertext ni ochib, asl JSON ma&apos;lumotni qaytaradi.</p>
+                </div>
+              </div>
+              <div className="grid-2 mt-1">
+                <div className="feature-card">
+                  <div className="feature-title text-primary">GET /api/v1/health</div>
+                  <p className="feature-desc">API key va Firestore holatini tekshiradi.</p>
+                </div>
+                <div className="feature-card">
+                  <div className="feature-title text-primary">GET /api/v1/usage</div>
+                  <p className="feature-desc">Foydalanish statistikasi: shifrlash/ochish soni.</p>
                 </div>
               </div>
             </section>

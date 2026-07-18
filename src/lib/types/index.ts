@@ -64,6 +64,7 @@ export interface ApiKeyDoc {
   created_at: Timestamp | string;
   last_used_at?: Timestamp | string;
   revoked?: boolean;
+  allowed_origins?: string[];
 }
 
 /** Public view of an API key (returned when listing keys). */
@@ -74,17 +75,36 @@ export interface ApiKeyPublicView {
   created_at: string;
   last_used_at?: string;
   revoked: boolean;
+  allowed_origins?: string[];
 }
 
 /** Input used when writing a usage log entry. */
 export interface UsageLogDocInput {
   uid: string;
   email?: string;
-  endpoint: 'encrypt' | 'decrypt';
+  endpoint: 'encrypt' | 'decrypt' | 'health';
   status: 'success' | 'error';
   bytes_in?: number;
   bytes_out?: number;
   error_message?: string;
   origin?: string;
   ip?: string;
+}
+
+/** Per-user usage aggregate stored in Firestore. */
+export interface UsageAggregateDoc {
+  uid: string;
+  total_encrypts: number;
+  total_decrypts: number;
+  total_errors: number;
+  last_request_at: Timestamp | string;
+  updated_at: Timestamp | string;
+}
+
+/** Usage statistics returned to the user. */
+export interface UsageStats {
+  total_encrypts: number;
+  total_decrypts: number;
+  total_errors: number;
+  last_request_at?: string;
 }

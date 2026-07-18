@@ -31,6 +31,16 @@ export interface MRCipherOptions {
    * @default 30000
    */
   timeoutMs?: number;
+  /**
+   * Optional number of retries for transient network failures.
+   * @default 2
+   */
+  retries?: number;
+  /**
+   * Optional base delay in milliseconds between retries (exponential backoff).
+   * @default 500
+   */
+  retryDelayMs?: number;
 }
 
 /**

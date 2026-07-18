@@ -36,14 +36,18 @@ export async function createApiKey(params: {
   uid: string;
   email?: string;
   name: string;
+  allowedOrigins?: string[];
 }): Promise<{ rawKey: string; publicView: ApiKeyPublicView }> {
-  const { uid, email, name } = params;
+  const { uid, email, name, allowedOrigins } = params;
   const rawKey = generateApiKey();
   const apiKeyHash = hashApiKey(rawKey);
   const apiKeyPrefix = rawKey.slice(-4);
 
   const docRef = getDb().collection(COLLECTION_API_KEYS).doc();
-  const apiKeyDoc: Omit<ApiKeyDoc, 'created_at'> & { created_at: string } = {
+  const apiKeyDoc: Omit<ApiKeyDoc, 'created_at' | 'allowed_origins'> & {
+    created_at: string;
+    allowed_origins?: string[];
+  } = {
     uid,
     email,
     name,
@@ -51,6 +55,9 @@ export async function createApiKey(params: {
     api_key_prefix: apiKeyPrefix,
     created_at: new Date().toISOString(),
     revoked: false,
+    ...(allowedOrigins && allowedOrigins.length > 0
+      ? { allowed_origins: normalizeOrigins(allowedOrigins) }
+      : {}),
   };
 
   await docRef.set(apiKeyDoc);
@@ -61,9 +68,37 @@ export async function createApiKey(params: {
     prefix: apiKeyPrefix,
     created_at: apiKeyDoc.created_at,
     revoked: false,
+    allowed_origins: apiKeyDoc.allowed_origins,
   };
 
   return { rawKey, publicView };
+}
+
+/**
+ * Update API key metadata. Only the owner can update their own key.
+ * Currently supports updating allowed_origins and optionally name.
+ */
+export async function updateApiKey(
+  uid: string,
+  docId: string,
+  updates: { name?: string; allowed_origins?: string[] },
+): Promise<boolean> {
+  const doc = await getDb().collection(COLLECTION_API_KEYS).doc(docId).get();
+  if (!doc.exists) return false;
+
+  const data = doc.data() as ApiKeyDoc;
+  if (data.uid !== uid) return false;
+
+  const payload: Record<string, unknown> = {};
+  if (typeof updates.name === 'string') payload.name = updates.name.trim();
+  if (updates.allowed_origins !== undefined) {
+    payload.allowed_origins = normalizeOrigins(updates.allowed_origins) ?? [];
+  }
+
+  if (Object.keys(payload).length === 0) return true;
+
+  await doc.ref.update(payload);
+  return true;
 }
 
 /**
@@ -94,16 +129,19 @@ export async function listApiKeysByUser(
           : data.last_used_at.toDate().toISOString()
         : undefined,
       revoked: data.revoked ?? false,
+      allowed_origins: data.allowed_origins,
     };
   });
 }
 
 /**
- * Find the user UID associated with an API key by its hash.
+ * Find the user UID and allowed origins associated with an API key by its hash.
  */
 export async function findUserByApiKey(
   apiKey: string,
-): Promise<{ uid: string; email?: string; docId: string } | null> {
+): Promise<
+  { uid: string; email?: string; docId: string; allowed_origins?: string[] } | null
+> {
   const hash = hashApiKey(apiKey);
 
   const snapshot = await getDb()
@@ -123,7 +161,57 @@ export async function findUserByApiKey(
     .update({ last_used_at: new Date().toISOString() })
     .catch(() => undefined);
 
-  return { uid: data.uid, email: data.email, docId: doc.id };
+  return {
+    uid: data.uid,
+    email: data.email,
+    docId: doc.id,
+    allowed_origins: normalizeOrigins(data.allowed_origins),
+  };
+}
+
+function normalizeOrigins(origins?: string[]): string[] | undefined {
+  if (!origins || origins.length === 0) return undefined;
+  return origins
+    .map((origin) => {
+      try {
+        const url = new URL(origin.trim());
+        return `${url.protocol}//${url.host}`;
+      } catch {
+        return origin.trim();
+      }
+    })
+    .filter(Boolean);
+}
+
+/**
+ * Revoke an API key by document id. Only the owner can revoke their own key.
+ */
+export async function revokeApiKey(
+  uid: string,
+  docId: string,
+): Promise<boolean> {
+  const doc = await getDb().collection(COLLECTION_API_KEYS).doc(docId).get();
+  if (!doc.exists) return false;
+
+  const data = doc.data() as ApiKeyDoc;
+  if (data.uid !== uid) return false;
+
+  await doc.ref.update({ revoked: true });
+  return true;
+}
+
+/**
+ * Permanently delete an API key. Only the owner can delete their own key.
+ */
+export async function deleteApiKey(uid: string, docId: string): Promise<boolean> {
+  const doc = await getDb().collection(COLLECTION_API_KEYS).doc(docId).get();
+  if (!doc.exists) return false;
+
+  const data = doc.data() as ApiKeyDoc;
+  if (data.uid !== uid) return false;
+
+  await doc.ref.delete();
+  return true;
 }
 
 /**
