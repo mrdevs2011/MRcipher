@@ -4,6 +4,17 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Logo } from '@/components/Logo';
 import { CodeTemplates } from '@/components/CodeTemplates';
+import {
+  AlertTriangleIcon,
+  ChatIcon,
+  CheckIcon,
+  CloseIcon,
+  ExclamationIcon,
+  KeyIcon,
+  LockIcon,
+  RefreshIcon,
+  ZapIcon,
+} from '@/components/Icons';
 import { ApiKeyPublicView } from '@/lib/types';
 
 export default function HomePage() {
@@ -475,7 +486,7 @@ export default function HomePage() {
 
             {signInError && (
               <div className="alert alert-error" style={{ maxWidth: 420, margin: '0 auto 1rem' }}>
-                <span className="alert-icon">!</span>
+                <span className="alert-icon"><ExclamationIcon size={20} /></span>
                 <div style={{ flex: 1 }}>
                   {signInError}
                   <button className="btn btn-ghost btn-sm" onClick={clearSignInError} style={{ marginLeft: '0.5rem' }}>
@@ -491,17 +502,17 @@ export default function HomePage() {
 
             <div className="grid-3 mt-2" style={{ maxWidth: 900, margin: '3rem auto 0' }}>
               <div className="feature-card">
-                <div className="feature-icon"><span>&#128274;</span></div>
+                <div className="feature-icon"><LockIcon size={28} /></div>
                 <div className="feature-title">AES-256-GCM</div>
                 <p className="feature-desc">Zamonaviy autentifikatsiyalik shifrlash. Har bir foydalanuvchi o&apos;z kalitiga ega.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon"><span>&#9889;</span></div>
+                <div className="feature-icon"><ZapIcon size={28} /></div>
                 <div className="feature-title">Drop-in SDK</div>
                 <p className="feature-desc">Bir necha qatorda ulang. Avtomatik shifrlash va ochish — JavaScript, Python, Go, PHP, Java.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon"><span>&#128172;</span></div>
+                <div className="feature-icon"><ChatIcon size={28} /></div>
                 <div className="feature-title">API-first</div>
                 <p className="feature-desc">Har qanday backendga mos. Faqat sozlangan field nomlarini bering, qolganini SDK qiladi.</p>
               </div>
@@ -597,17 +608,17 @@ export default function HomePage() {
                 )}
 
                 {translatorKeyBound && (
-                  <div className="key-meta" style={{ alignSelf: 'center', marginTop: '1.55rem' }}>
-                    <span style={{ color: 'var(--success)' }}>
-                      ✓ Briktirilgan · mr_···{translatorBoundRawKey.slice(-4)}
+                  <div className="key-meta" style={{ alignSelf: 'center', marginTop: '1.55rem', display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <CheckIcon size={14} /> Briktirilgan · mr_···{translatorBoundRawKey.slice(-4)}
                     </span>
                   </div>
                 )}
 
                 {translatorBoundKeyId === 'fresh' && !freshApiKey && (
-                  <div className="key-meta" style={{ alignSelf: 'center', marginTop: '1.55rem' }}>
-                    <span style={{ color: 'var(--warning)' }}>
-                      ⚠ Yangi key yaratib, uni nusxa oling
+                  <div className="key-meta" style={{ alignSelf: 'center', marginTop: '1.55rem', display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--warning)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <AlertTriangleIcon size={14} /> Yangi key yaratib, uni nusxa oling
                     </span>
                   </div>
                 )}
@@ -645,7 +656,7 @@ export default function HomePage() {
                         : 'Ochish'}
                   </button>
                   <button className="btn btn-ghost btn-sm" onClick={swapTranslator} type="button">
-                    🔄 Almashtirish
+                    <RefreshIcon size={14} /> Almashtirish
                   </button>
                 </div>
 
@@ -700,7 +711,7 @@ export default function HomePage() {
 
               {apiKeys.length === 0 ? (
                 <div className="key-empty">
-                  <div className="key-empty-icon"><span>&#128273;</span></div>
+                  <div className="key-empty-icon"><KeyIcon size={40} /></div>
                   <div>Hali API key yaratilmagan</div>
                 </div>
               ) : (
@@ -788,7 +799,7 @@ export default function HomePage() {
                 <div className="modal" onClick={(e) => e.stopPropagation()}>
                   <div className="modal-header">
                     <div className="card-title">Yangi API key yaratish</div>
-                    <button className="btn btn-ghost btn-sm" onClick={closeCreateModal}>×</button>
+                    <button className="btn btn-ghost btn-sm" onClick={closeCreateModal}><CloseIcon size={20} /></button>
                   </div>
 
                   <label className="block" style={{ marginBottom: 0 }}>
