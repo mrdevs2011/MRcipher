@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { Logo } from '@/components/Logo';
-import { CheckIcon, CloseIcon, AlertTriangleIcon, RefreshIcon } from '@/components/Icons';
+import { CheckIcon, CloseIcon, AlertTriangleIcon } from '@/components/Icons';
 
 /**
  * /verify — fayl butunligini tekshirish (hash orqali solishtirish).
@@ -21,10 +21,11 @@ type SlotState = {
   file: File | null;
   hash: string | null;
   hashing: boolean;
+  progress: number;
   error: string | null;
 };
 
-const EMPTY_SLOT: SlotState = { file: null, hash: null, hashing: false, error: null };
+const EMPTY_SLOT: SlotState = { file: null, hash: null, hashing: false, progress: 0, error: null };
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -38,17 +39,67 @@ function formatBytes(bytes: number): string {
   return `${value.toFixed(value < 10 ? 2 : 1)} ${units[unitIndex]}`;
 }
 
-async function hashFile(file: File): Promise<string> {
+function toHex(digest: ArrayBuffer): string {
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * Hash a file with SHA-256, reporting read progress along the way.
+ *
+ * The file is streamed in chunks via Blob.stream() so large files (video,
+ * archives, etc.) report real progress instead of freezing on one big
+ * arrayBuffer() read. Reading accounts for 0-95% of the bar; the final
+ * digest pass (fast, but not instant for very large files) fills the rest.
+ */
+async function hashFile(file: File, onProgress: (pct: number) => void): Promise<string> {
   if (!('crypto' in window) || !window.crypto.subtle) {
     throw new Error(
       "Brauzeringiz Web Crypto API'ni qo'llab-quvvatlamaydi (HTTPS orqali oching).",
     );
   }
-  const buffer = await file.arrayBuffer();
-  const digest = await window.crypto.subtle.digest('SHA-256', buffer);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+
+  if (file.size === 0) {
+    const digest = await window.crypto.subtle.digest('SHA-256', new ArrayBuffer(0));
+    onProgress(100);
+    return toHex(digest);
+  }
+
+  if (typeof file.stream !== 'function') {
+    // Fallback for browsers without Blob.stream() support.
+    const buffer = await file.arrayBuffer();
+    onProgress(95);
+    const digest = await window.crypto.subtle.digest('SHA-256', buffer);
+    onProgress(100);
+    return toHex(digest);
+  }
+
+  const reader = file.stream().getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      chunks.push(value);
+      received += value.byteLength;
+      onProgress(Math.min(95, (received / file.size) * 95));
+    }
+  }
+
+  const combined = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    combined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  onProgress(97);
+  const digest = await window.crypto.subtle.digest('SHA-256', combined);
+  onProgress(100);
+  return toHex(digest);
 }
 
 function FileSlot({
@@ -64,6 +115,7 @@ function FileSlot({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleFiles = useCallback(
     (fileList: FileList | null) => {
@@ -72,6 +124,14 @@ function FileSlot({
     },
     [onFile],
   );
+
+  function copyHash() {
+    if (!state.hash) return;
+    navigator.clipboard.writeText(state.hash).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
 
   return (
     <div>
@@ -138,8 +198,16 @@ function FileSlot({
             <div className="dropzone-file-size">{formatBytes(state.file.size)}</div>
 
             {state.hashing && (
-              <div className="text-muted mt-1" style={{ fontSize: '0.85rem' }}>
-                <RefreshIcon size={14} /> Hash hisoblanmoqda...
+              <div className="hash-progress">
+                <div className="hash-progress-track">
+                  <div
+                    className="hash-progress-fill"
+                    style={{ width: `${Math.max(4, state.progress)}%` }}
+                  />
+                </div>
+                <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+                  Hash hisoblanmoqda... {Math.round(state.progress)}%
+                </span>
               </div>
             )}
 
@@ -153,7 +221,19 @@ function FileSlot({
             )}
 
             {state.hash && !state.hashing && (
-              <div className="hash-value">{state.hash}</div>
+              <div className="hash-row">
+                <div className="hash-value">{state.hash}</div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm btn-copy-inline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyHash();
+                  }}
+                >
+                  {copied ? 'Nusxa olindi!' : 'Nusxa olish'}
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -168,14 +248,17 @@ export default function VerifyPage() {
 
   const runHash = useCallback(
     (file: File, setSlot: React.Dispatch<React.SetStateAction<SlotState>>) => {
-      setSlot({ file, hash: null, hashing: true, error: null });
-      hashFile(file)
-        .then((hash) => setSlot({ file, hash, hashing: false, error: null }))
+      setSlot({ file, hash: null, hashing: true, progress: 0, error: null });
+      hashFile(file, (pct) => {
+        setSlot((prev) => (prev.file === file ? { ...prev, progress: pct } : prev));
+      })
+        .then((hash) => setSlot({ file, hash, hashing: false, progress: 100, error: null }))
         .catch((err) =>
           setSlot({
             file,
             hash: null,
             hashing: false,
+            progress: 0,
             error:
               err instanceof Error
                 ? `Faylni o'qishda xatolik: ${err.message}`
@@ -194,6 +277,9 @@ export default function VerifyPage() {
   const bothReady = Boolean(slotA.hash && slotB.hash);
   const isMatch = bothReady && slotA.hash === slotB.hash;
   const hasAnyError = Boolean(slotA.error || slotB.error);
+  const namesDiffer = Boolean(
+    slotA.file && slotB.file && slotA.file.name !== slotB.file.name,
+  );
 
   return (
     <div className="page">
@@ -240,6 +326,13 @@ export default function VerifyPage() {
                   {isMatch
                     ? "Fayllar bir xil — o'zgarmagan."
                     : 'Fayllar boshqacha — kamida bittasi boshqa yoki o\'zgartirilgan.'}
+                  {isMatch && namesDiffer && (
+                    <div className="mt-1" style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                      Diqqat: fayl nomlari boshqacha —{' '}
+                      <strong>{slotA.file?.name}</strong> va <strong>{slotB.file?.name}</strong>.
+                      Mazmuni bir xil, lekin fayl nomi almashtirilgan bo&apos;lishi mumkin.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
