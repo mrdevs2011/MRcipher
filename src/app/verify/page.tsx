@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { Logo } from '@/components/Logo';
 import { CheckIcon, CloseIcon, AlertTriangleIcon } from '@/components/Icons';
+import { SiteHeader, SiteSidebar, SiteBottomNav, SiteFooter } from '@/components/SiteChrome';
 
 /**
  * /verify — fayl butunligini tekshirish (hash orqali solishtirish).
@@ -283,19 +283,12 @@ export default function VerifyPage() {
 
   return (
     <div className="page">
-      <nav className="navbar">
-        <div className="navbar-inner container">
-          <a href="/" className="brand">
-            <Logo size={28} />
-            MRcipher
-          </a>
-          <a href="/" className="btn btn-ghost btn-sm">
-            Bosh sahifa
-          </a>
-        </div>
-      </nav>
+      <SiteHeader />
 
-      <main>
+      <div className="app-shell">
+        <SiteSidebar active="verify" />
+
+        <main className="app-main">
         <div className="container" style={{ maxWidth: 860 }}>
           <section className="hero" style={{ paddingBottom: '1rem' }}>
             <div className="badge">
@@ -344,11 +337,11 @@ export default function VerifyPage() {
             )}
           </section>
         </div>
-      </main>
+        <SiteFooter variant="app" />
+        </main>
 
-      <footer className="footer">
-        <p className="text-muted">MRcipher — AES-256-GCM Encryption-as-a-Service</p>
-      </footer>
+        <SiteBottomNav active="verify" />
+      </div>
     </div>
   );
 }

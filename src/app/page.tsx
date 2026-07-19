@@ -4,12 +4,11 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Logo } from '@/components/Logo';
 import { CodeTemplates } from '@/components/CodeTemplates';
+import { SiteHeader, SiteSidebar, SiteBottomNav, SiteFooter, NavKey } from '@/components/SiteChrome';
 import {
   AlertTriangleIcon,
   ChatIcon,
-  CheckIcon,
   CloseIcon,
-  DocIcon,
   ExclamationIcon,
   KeyIcon,
   LockIcon,
@@ -20,14 +19,8 @@ import { ApiKeyPublicView } from '@/lib/types';
 
 type AppTab = 'translator' | 'keys' | 'docs';
 
-const NAV_ITEMS: { key: AppTab; label: string; icon: (props: { size?: number }) => JSX.Element }[] = [
-  { key: 'translator', label: 'Tarjimon', icon: ChatIcon },
-  { key: 'keys', label: 'API kalitlar', icon: KeyIcon },
-  { key: 'docs', label: 'Hujjatlar', icon: DocIcon },
-];
-
 export default function HomePage() {
-  const { user, loading, signInWithGoogle, logout, refreshIdToken, signInError, clearSignInError } = useAuth();
+  const { user, loading, signInWithGoogle, refreshIdToken, signInError, clearSignInError } = useAuth();
   const [activeTab, setActiveTab] = useState<AppTab>('translator');
   const [apiKeys, setApiKeys] = useState<ApiKeyPublicView[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -55,6 +48,14 @@ export default function HomePage() {
   const [translatorLoading, setTranslatorLoading] = useState(false);
   const [translatorBoundKeyId, setTranslatorBoundKeyId] = useState<'fresh' | string>('fresh');
   const [translatorBoundRawKey, setTranslatorBoundRawKey] = useState('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab === 'translator' || tab === 'keys' || tab === 'docs') {
+      setActiveTab(tab);
+    }
+  }, []);
 
   useEffect(() => {
     if (freshApiKey && freshApiKeyId) {
@@ -477,15 +478,7 @@ export default function HomePage() {
   if (loading) {
     return (
       <div className="page">
-        <nav className="navbar">
-          <div className="navbar-inner container">
-            <a href="/" className="brand">
-              <Logo size={28} />
-              MRcipher
-            </a>
-            <div className="skeleton skeleton-sm" style={{ width: 96, height: 36 }} />
-          </div>
-        </nav>
+        <SiteHeader />
         <main>
           <div className="container">
             <section className="hero skeleton-hero">
@@ -523,26 +516,7 @@ export default function HomePage() {
 
   return (
     <div className="page">
-      <nav className="navbar">
-        <div className="navbar-inner container">
-          <a href="/" className="brand">
-            <Logo size={28} />
-            <span className="brand-text">MRcipher</span>
-          </a>
-          {user ? (
-            <div className="nav-user">
-              <span className="email" title={user.email ?? ''}>{user.email}</span>
-              <button className="btn btn-ghost btn-sm" onClick={logout}>
-                Chiqish
-              </button>
-            </div>
-          ) : (
-            <button className="btn btn-primary btn-sm" onClick={signInWithGoogle}>
-              Google bilan kirish
-            </button>
-          )}
-        </div>
-      </nav>
+      <SiteHeader />
 
       {!user ? (
       <main>
@@ -603,28 +577,10 @@ export default function HomePage() {
       </main>
       ) : (
       <div className="app-shell">
-        <aside className="sidebar">
-          <div className="sidebar-user">
-            <div className="sidebar-avatar">{(user.email ?? '?').charAt(0).toUpperCase()}</div>
-            <div className="sidebar-user-info">
-              <div className="sidebar-email" title={user.email ?? ''}>{user.email}</div>
-              <button className="btn btn-ghost btn-sm" onClick={logout}>Chiqish</button>
-            </div>
-          </div>
-          <nav className="sidebar-nav">
-            {NAV_ITEMS.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={`sidebar-link ${activeTab === item.key ? 'active' : ''}`}
-                onClick={() => setActiveTab(item.key)}
-              >
-                <item.icon size={18} />
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </nav>
-        </aside>
+        <SiteSidebar
+          active={activeTab}
+          onSelectTab={(key: NavKey) => setActiveTab(key as AppTab)}
+        />
 
         <main className="app-main">
           <div className="container">
@@ -1032,32 +988,17 @@ export default function HomePage() {
             )}
           </div>
 
-          <footer className="footer app-footer">
-            <p className="text-muted">MRcipher — AES-256-GCM Encryption-as-a-Service</p>
-          </footer>
+          <SiteFooter variant="app" />
         </main>
 
-        <nav className="bottom-tabbar">
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={`bottom-tab ${activeTab === item.key ? 'active' : ''}`}
-              onClick={() => setActiveTab(item.key)}
-            >
-              <item.icon size={20} />
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </nav>
+        <SiteBottomNav
+          active={activeTab}
+          onSelectTab={(key: NavKey) => setActiveTab(key as AppTab)}
+        />
       </div>
       )}
 
-      {!user && (
-        <footer className="footer">
-          <p className="text-muted">MRcipher — AES-256-GCM Encryption-as-a-Service</p>
-        </footer>
-      )}
+      {!user && <SiteFooter />}
     </div>
   );
 }
