@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Logo } from '@/components/Logo';
-import { ChatIcon, KeyIcon, WrenchIcon, DocIcon, CheckIcon } from '@/components/Icons';
+import { ChatIcon, KeyIcon, WrenchIcon, DocIcon, CheckIcon, PanelToggleIcon } from '@/components/Icons';
 
 /**
  * Butun ilova bo'ylab bir xil header, sidebar, bottom-tabbar va footer.
@@ -29,6 +30,38 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'guide', label: 'Qo\u2018llanma', href: '/doc', icon: DocIcon },
   { key: 'verify', label: 'Fayl tekshirish', href: '/verify', icon: CheckIcon },
 ];
+
+const SIDEBAR_COLLAPSE_KEY = 'mrcipher:sidebar-collapsed';
+
+/**
+ * Sidebar yig'ilgan/yozilgan holatini localStorage'da saqlaydi, shu tufayli
+ * qaysi sahifaga o'tilmasin (dashboard, /verify, /doc) holat bir xil qoladi.
+ */
+function useSidebarCollapsed() {
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      setCollapsed(window.localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1');
+    } catch {
+      // localStorage yo'q bo'lsa (masalan private mode), sukut bo'yicha ochiq qoladi.
+    }
+  }, []);
+
+  function toggle() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSE_KEY, next ? '1' : '0');
+      } catch {
+        // e'tiborsiz qoldiriladi
+      }
+      return next;
+    });
+  }
+
+  return { collapsed, toggle };
+}
 
 /** Barcha sahifalarda bir xil ko'rinadigan yuqori navbar. */
 export function SiteHeader() {
@@ -71,12 +104,23 @@ type NavProps = {
   onSelectTab?: (key: NavKey) => void;
 };
 
-/** Desktop uchun chap tomondagi doimiy sidebar. */
+/** Desktop uchun chap tomondagi doimiy sidebar. Instagram/YouTube kabi yig'ilib, faqat ikonka qolishi mumkin. */
 export function SiteSidebar({ active, onSelectTab }: NavProps) {
   const { user, logout } = useAuth();
+  const { collapsed, toggle } = useSidebarCollapsed();
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+      <button
+        type="button"
+        className="sidebar-toggle"
+        onClick={toggle}
+        title={collapsed ? "Sidebar'ni kengaytirish" : "Sidebar'ni yig'ish"}
+        aria-label={collapsed ? "Sidebar'ni kengaytirish" : "Sidebar'ni yig'ish"}
+      >
+        <PanelToggleIcon size={18} />
+      </button>
+
       {user && (
         <div className="sidebar-user">
           <div className="sidebar-avatar">{(user.email ?? '?').charAt(0).toUpperCase()}</div>
@@ -96,6 +140,7 @@ export function SiteSidebar({ active, onSelectTab }: NavProps) {
                 type="button"
                 className={`sidebar-link ${isActive ? 'active' : ''}`}
                 onClick={() => onSelectTab(item.key)}
+                title={item.label}
               >
                 <item.icon size={18} />
                 <span>{item.label}</span>
@@ -107,6 +152,7 @@ export function SiteSidebar({ active, onSelectTab }: NavProps) {
               key={item.key}
               href={item.href}
               className={`sidebar-link ${isActive ? 'active' : ''}`}
+              title={item.label}
             >
               <item.icon size={18} />
               <span>{item.label}</span>
