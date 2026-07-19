@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Logo } from '@/components/Logo';
-import { ChatIcon, KeyIcon, WrenchIcon, DocIcon, CheckIcon, PanelToggleIcon } from '@/components/Icons';
+import { ChatIcon, KeyIcon, WrenchIcon, DocIcon, CheckIcon, PanelToggleIcon, MoreIcon } from '@/components/Icons';
 
 /**
  * Butun ilova bo'ylab bir xil header, sidebar, bottom-tabbar va footer.
@@ -63,6 +63,73 @@ function useSidebarCollapsed() {
   return { collapsed, toggle };
 }
 
+/**
+ * Header'dagi "..." hisob menyusi. Hozircha faqat "Chiqish" bor, lekin
+ * kelajakda shu yerga boshqa hisob bilan bog'liq amallar (masalan, profil,
+ * sozlamalar) qo'shish uchun ochiq joy sifatida mo'ljallangan.
+ */
+function AccountMenu({ email, onLogout }: { email: string | null; onLogout: () => void }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open]);
+
+  return (
+    <div className="navbar-menu" ref={menuRef}>
+      <button
+        type="button"
+        className="navbar-menu-btn"
+        onClick={() => setOpen((prev) => !prev)}
+        title="Hisob menyusi"
+        aria-label="Hisob menyusi"
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <MoreIcon size={20} />
+      </button>
+
+      {open && (
+        <div className="navbar-menu-dropdown" role="menu">
+          {email && (
+            <div className="navbar-menu-email" title={email}>
+              {email}
+            </div>
+          )}
+          <button
+            type="button"
+            className="navbar-menu-item"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onLogout();
+            }}
+          >
+            Chiqish
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Barcha sahifalarda bir xil ko'rinadigan yuqori navbar. */
 export function SiteHeader() {
   const { user, loading, signInWithGoogle, logout } = useAuth();
@@ -76,14 +143,9 @@ export function SiteHeader() {
         </Link>
 
         {loading ? (
-          <div className="skeleton skeleton-sm" style={{ width: 96, height: 36 }} />
+          <div className="skeleton skeleton-sm" style={{ width: 36, height: 36 }} />
         ) : user ? (
-          <div className="nav-user">
-            <span className="email" title={user.email ?? ''}>{user.email}</span>
-            <button className="btn btn-ghost btn-sm" onClick={logout}>
-              Chiqish
-            </button>
-          </div>
+          <AccountMenu email={user.email} onLogout={logout} />
         ) : (
           <button className="btn btn-primary btn-sm" onClick={signInWithGoogle}>
             Google bilan kirish
@@ -106,7 +168,7 @@ type NavProps = {
 
 /** Desktop uchun chap tomondagi doimiy sidebar. Instagram/YouTube kabi yig'ilib, faqat ikonka qolishi mumkin. */
 export function SiteSidebar({ active, onSelectTab }: NavProps) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { collapsed, toggle } = useSidebarCollapsed();
 
   return (
@@ -126,7 +188,6 @@ export function SiteSidebar({ active, onSelectTab }: NavProps) {
           <div className="sidebar-avatar">{(user.email ?? '?').charAt(0).toUpperCase()}</div>
           <div className="sidebar-user-info">
             <div className="sidebar-email" title={user.email ?? ''}>{user.email}</div>
-            <button className="btn btn-ghost btn-sm" onClick={logout}>Chiqish</button>
           </div>
         </div>
       )}

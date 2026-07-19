@@ -242,9 +242,14 @@ function FileSlot({
   );
 }
 
+type VerifyMode = 'compare' | 'single';
+
 export default function VerifyPage() {
+  const [mode, setMode] = useState<VerifyMode>('compare');
+
   const [slotA, setSlotA] = useState<SlotState>(EMPTY_SLOT);
   const [slotB, setSlotB] = useState<SlotState>(EMPTY_SLOT);
+  const [slotSingle, setSlotSingle] = useState<SlotState>(EMPTY_SLOT);
 
   const runHash = useCallback(
     (file: File, setSlot: React.Dispatch<React.SetStateAction<SlotState>>) => {
@@ -271,8 +276,13 @@ export default function VerifyPage() {
 
   const handleFileA = useCallback((file: File) => runHash(file, setSlotA), [runHash]);
   const handleFileB = useCallback((file: File) => runHash(file, setSlotB), [runHash]);
+  const handleFileSingle = useCallback(
+    (file: File) => runHash(file, setSlotSingle),
+    [runHash],
+  );
   const clearA = useCallback(() => setSlotA(EMPTY_SLOT), []);
   const clearB = useCallback(() => setSlotB(EMPTY_SLOT), []);
+  const clearSingle = useCallback(() => setSlotSingle(EMPTY_SLOT), []);
 
   const bothReady = Boolean(slotA.hash && slotB.hash);
   const isMatch = bothReady && slotA.hash === slotB.hash;
@@ -296,44 +306,77 @@ export default function VerifyPage() {
               Fayl butunligini tekshirish
             </div>
             <h1 style={{ fontSize: '1.9rem', marginTop: '0.75rem' }}>
-              Ikki faylni solishtiring
+              {mode === 'compare' ? 'Ikki faylni solishtiring' : 'Bitta fayl hashi'}
             </h1>
             <p className="text-muted" style={{ maxWidth: 560, margin: '0.5rem auto 0' }}>
-              Har ikkala faylning SHA-256 hashi butunlay brauzeringizda hisoblanadi.
-              Fayllar hech qachon serverga yuborilmaydi va hajmiga cheklov yo&apos;q.
+              {mode === 'compare'
+                ? "Har ikkala faylning SHA-256 hashi butunlay brauzeringizda hisoblanadi. Fayllar hech qachon serverga yuborilmaydi va hajmiga cheklov yo'q."
+                : "Faylning SHA-256 hashi butunlay brauzeringizda hisoblanadi. Fayl hech qachon serverga yuborilmaydi va hajmiga cheklov yo'q."}
             </p>
           </section>
 
           <section className="card">
-            <div className="verify-grid">
-              <FileSlot label="1-fayl (A)" state={slotA} onFile={handleFileA} onClear={clearA} />
-              <FileSlot label="2-fayl (B)" state={slotB} onFile={handleFileB} onClear={clearB} />
+            <div className="card-header" style={{ justifyContent: 'center', border: 'none', padding: 0, marginBottom: '1.25rem' }}>
+              <div className="tab-list">
+                <button
+                  type="button"
+                  className={`tab ${mode === 'compare' ? 'active' : ''}`}
+                  onClick={() => setMode('compare')}
+                >
+                  Ikki faylni solishtirish
+                </button>
+                <button
+                  type="button"
+                  className={`tab ${mode === 'single' ? 'active' : ''}`}
+                  onClick={() => setMode('single')}
+                >
+                  Bitta fayl hashi
+                </button>
+              </div>
             </div>
 
-            {bothReady && (
-              <div className={`alert ${isMatch ? 'alert-success' : 'alert-error'} mt-2`}>
-                <span className="alert-icon">
-                  {isMatch ? <CheckIcon size={18} /> : <AlertTriangleIcon size={18} />}
-                </span>
-                <div className="alert-body">
-                  {isMatch
-                    ? "Fayllar bir xil — o'zgarmagan."
-                    : 'Fayllar boshqacha — kamida bittasi boshqa yoki o\'zgartirilgan.'}
-                  {isMatch && namesDiffer && (
-                    <div className="mt-1" style={{ fontSize: '0.85rem', opacity: 0.9 }}>
-                      Diqqat: fayl nomlari boshqacha —{' '}
-                      <strong>{slotA.file?.name}</strong> va <strong>{slotB.file?.name}</strong>.
-                      Mazmuni bir xil, lekin fayl nomi almashtirilgan bo&apos;lishi mumkin.
-                    </div>
-                  )}
+            {mode === 'compare' ? (
+              <>
+                <div className="verify-grid">
+                  <FileSlot label="1-fayl (A)" state={slotA} onFile={handleFileA} onClear={clearA} />
+                  <FileSlot label="2-fayl (B)" state={slotB} onFile={handleFileB} onClear={clearB} />
                 </div>
-              </div>
-            )}
 
-            {!bothReady && !hasAnyError && (slotA.file || slotB.file) && (
-              <p className="text-muted mt-2" style={{ textAlign: 'center' }}>
-                Solishtirish uchun ikkinchi faylni ham qo&apos;shing.
-              </p>
+                {bothReady && (
+                  <div className={`alert ${isMatch ? 'alert-success' : 'alert-error'} mt-2`}>
+                    <span className="alert-icon">
+                      {isMatch ? <CheckIcon size={18} /> : <AlertTriangleIcon size={18} />}
+                    </span>
+                    <div className="alert-body">
+                      {isMatch
+                        ? "Fayllar bir xil — o'zgarmagan."
+                        : 'Fayllar boshqacha — kamida bittasi boshqa yoki o\'zgartirilgan.'}
+                      {isMatch && namesDiffer && (
+                        <div className="mt-1" style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+                          Diqqat: fayl nomlari boshqacha —{' '}
+                          <strong>{slotA.file?.name}</strong> va <strong>{slotB.file?.name}</strong>.
+                          Mazmuni bir xil, lekin fayl nomi almashtirilgan bo&apos;lishi mumkin.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {!bothReady && !hasAnyError && (slotA.file || slotB.file) && (
+                  <p className="text-muted mt-2" style={{ textAlign: 'center' }}>
+                    Solishtirish uchun ikkinchi faylni ham qo&apos;shing.
+                  </p>
+                )}
+              </>
+            ) : (
+              <div style={{ maxWidth: 420, margin: '0 auto' }}>
+                <FileSlot
+                  label="Fayl"
+                  state={slotSingle}
+                  onFile={handleFileSingle}
+                  onClear={clearSingle}
+                />
+              </div>
             )}
           </section>
         </div>
