@@ -87,6 +87,30 @@ const nextConfig = {
         source: '/:path*',
         headers: staticSecurityHeaders,
       },
+      {
+        // /cli-auth talks to a local server the CLI spins up on 127.0.0.1
+        // (mrcipher login handoff). The generic CSP above doesn't allow
+        // connect-src to localhost, so it needs its own, slightly relaxed
+        // policy. This MUST come after '/:path*' — Next.js applies the
+        // LAST matching header for a given key, not an intersection of both.
+        source: '/cli-auth',
+        headers: [
+          ...apiSecurityHeaders,
+          {
+            key: 'Content-Security-Policy',
+            value:
+              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://*.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.googleapis.com https://apis.google.com https://*.firebaseio.com https://*.google-analytics.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:*; frame-src 'self' https://*.firebaseapp.com https://*.google.com https://accounts.google.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
+          },
+        ],
+      },
     ];
   },
 };
