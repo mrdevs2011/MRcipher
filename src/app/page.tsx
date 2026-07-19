@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { getFirestoreInstance } from '@/lib/firebaseClient';
 import { Logo } from '@/components/Logo';
 import { CodeTemplates } from '@/components/CodeTemplates';
 import { SiteHeader, SiteSidebar, SiteBottomNav, SiteFooter, NavKey } from '@/components/SiteChrome';
@@ -164,6 +166,58 @@ export default function HomePage() {
       setTranslatorBoundKeyId('fresh');
     }
   }, [user, loadApiKeys]);
+
+  // Real-time sync: CLI (`mrcipher login`, `mrcipher keys create/revoke`) va
+  // sayt bir xil Firestore hujjatlarini o'qiydi/yozadi. Bu listener saytni
+  // sahifani yangilamasdan darrov yangilab turadi — CLI'da yaratilgan key
+  // shu zahoti shu yerda ham ko'rinadi, revoke qilingani ham darrov yo'qoladi.
+  useEffect(() => {
+    if (!user) return;
+
+    let unsubscribe: (() => void) | undefined;
+    try {
+      const db = getFirestoreInstance();
+      const q = query(collection(db, 'api_keys'), where('uid', '==', user.uid));
+      unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const keys: ApiKeyPublicView[] = snapshot.docs
+            .map((docSnap) => {
+              const data = docSnap.data() as any;
+              const toIso = (value: any): string | undefined => {
+                if (!value) return undefined;
+                if (typeof value?.toDate === 'function') return value.toDate().toISOString();
+                return typeof value === 'string' ? value : undefined;
+              };
+              return {
+                id: docSnap.id,
+                name: data.name,
+                prefix: data.api_key_prefix,
+                raw_key: data.api_key_raw,
+                created_at: toIso(data.created_at) ?? '',
+                last_used_at: toIso(data.last_used_at),
+                revoked: !!data.revoked,
+                allowed_origins: data.allowed_origins ?? [],
+                allowed_ips: data.allowed_ips ?? [],
+                scopes: data.scopes ?? [],
+              } as ApiKeyPublicView;
+            })
+            .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+          setApiKeys(keys);
+        },
+        () => {
+          // Real-time obuna muvaffaqiyatsiz bo'lsa jim tur; oddiy REST
+          // (loadApiKeys) baribir login/harakatlar vaqtida ishlayveradi.
+        },
+      );
+    } catch {
+      // Firestore client init muvaffaqiyatsiz bo'lsa ham ilova ishlashda davom etadi.
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user]);
 
   function openCreateModal() {
     setShowCreateModal(true);

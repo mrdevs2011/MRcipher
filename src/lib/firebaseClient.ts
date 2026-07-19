@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 function getFirebaseConfig() {
   return {
@@ -44,6 +45,15 @@ export function getFirebaseApp(): FirebaseApp {
 
 export function getAuthInstance() {
   return getAuth(getFirebaseApp());
+}
+
+/**
+ * Firestore client instance, used only for read-only real-time listeners
+ * (e.g. live-updating the API key list when the CLI creates/revokes a key).
+ * All writes still go through the server-side Admin SDK via the REST API.
+ */
+export function getFirestoreInstance() {
+  return getFirestore(getFirebaseApp());
 }
 
 export const googleProvider = new GoogleAuthProvider();

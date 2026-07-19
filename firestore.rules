@@ -18,9 +18,15 @@ service cloud.firestore {
     }
 
     // API keys: raw keys are stored 1:1 alongside metadata so the UI can
-    // rebind automatically. Direct client access is forbidden.
+    // rebind automatically. Writes are still server-only (Admin SDK), but
+    // the OWNER may read their own key docs directly — this is what powers
+    // the real-time dashboard <-> CLI sync (a key created via `mrcipher
+    // login`/`mrcipher keys create` appears on the website instantly via
+    // onSnapshot, with no extra server round trip). This is no more
+    // permissive than today's REST /api/v1/keys endpoint, which already
+    // returns raw keys to their owner.
     match /api_keys/{keyId} {
-      allow read: if false;
+      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
       allow write: if false;
       allow create: if false;
       allow update: if false;
