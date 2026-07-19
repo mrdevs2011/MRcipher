@@ -27,7 +27,7 @@
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.35",
     "typescript": "^5.4.0",
-    "vercel": "^56.3.1"
+    "vercel": "^56.3.2"
   },
   "engines": {
     "node": ">=18.17.0"

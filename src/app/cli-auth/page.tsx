@@ -171,7 +171,7 @@ function CliAuthInner() {
 
         {invalidRequest && (
           <p style={{ color: 'var(--danger)', fontSize: '0.9rem' }}>
-            Noto'g'ri so'rov: <code>port</code> parametri yo'q yoki xato. Iltimos,
+            Noto&apos;g&apos;ri so&apos;rov: <code>port</code> parametri yo&apos;q yoki xato. Iltimos,
             sahifani <code>mrcipher login</code> orqali oching.
           </p>
         )}
