@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Logo } from '@/components/Logo';
@@ -21,6 +21,7 @@ import { Logo } from '@/components/Logo';
 
 type Status =
   | 'idle'
+  | 'confirm_account'
   | 'signing_in'
   | 'creating_key'
   | 'sending_to_cli'
@@ -38,9 +39,15 @@ function CliAuthInner() {
   //             is owner-auth only and doesn't accept the saved API key)
   const mode = params.get('mode') === 'token' ? 'token' : 'key';
 
-  const { user, loading, signInWithGoogle, refreshIdToken, signInError } = useAuth();
+  const { user, loading, signInWithGoogle, logout, refreshIdToken, signInError } = useAuth();
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
+  // true faqat foydalanuvchi shu sahifada "Google bilan kirish" tugmasini
+  // bosib, sign-in oqimini hozir, aniq ravishda o'zi boshlagan bo'lsa.
+  // false bo'lsa — bu sahifa ochilganda brauzerda AVVALDAN saqlangan
+  // sessiya borligini bildiradi, va bunday holatda avtomatik davom
+  // etmasdan, foydalanuvchidan tasdiq so'raymiz.
+  const justSignedInRef = useRef(false);
 
   const invalidRequest = !port || !/^\d{2,5}$/.test(port);
 
@@ -124,17 +131,47 @@ function CliAuthInner() {
   useEffect(() => {
     if (loading || invalidRequest) return;
     if (user && status === 'idle') {
-      void completeHandoff();
+      if (justSignedInRef.current) {
+        // Foydalanuvchi shu yerda, hozir, aniq ravishda kirdi — qo'shimcha
+        // tasdiqsiz davom etamiz.
+        justSignedInRef.current = false;
+        void completeHandoff();
+      } else {
+        // Brauzerda avvaldan saqlangan sessiya bor edi. Jimgina o'sha
+        // hisobga o'tib ketmasdan, avval tasdiq so'raymiz.
+        setStatus('confirm_account');
+      }
     }
   }, [loading, user, status, invalidRequest, completeHandoff]);
 
   async function handleSignIn() {
     setError('');
+    justSignedInRef.current = true;
     setStatus('signing_in');
     try {
       await signInWithGoogle();
       // onAuthStateChanged -> user o'rnatiladi -> yuqoridagi useEffect handoff'ni davom ettiradi.
     } catch {
+      justSignedInRef.current = false;
+      setStatus('idle');
+    }
+  }
+
+  function handleContinueWithCurrentAccount() {
+    void completeHandoff();
+  }
+
+  async function handleSwitchAccount() {
+    setError('');
+    setStatus('signing_in');
+    try {
+      // Avval to'liq chiqamiz, so'ng hisob tanlash oynasi bilan qaytadan
+      // kiramiz — shunda foydalanuvchi boshqa Google hisobini tanlay oladi.
+      await logout();
+      justSignedInRef.current = true;
+      await signInWithGoogle();
+    } catch {
+      justSignedInRef.current = false;
       setStatus('idle');
     }
   }
@@ -176,7 +213,58 @@ function CliAuthInner() {
           </p>
         )}
 
-        {!invalidRequest && status !== 'success' && status !== 'error' && (
+        {!invalidRequest && status === 'confirm_account' && (
+          <>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 0.5rem' }}>
+              Bu brauzerda allaqachon quyidagi hisob bilan kirilgan:
+            </p>
+            <p style={{ color: 'var(--text)', fontWeight: 600, margin: '0 0 1.5rem' }}>
+              {user?.email}
+            </p>
+
+            {signInError && (
+              <p style={{ color: 'var(--danger)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                {signInError}
+              </p>
+            )}
+
+            <button
+              onClick={handleContinueWithCurrentAccount}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-hover)',
+                background: 'var(--bg-input)',
+                color: 'var(--text)',
+                fontSize: '0.95rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                marginBottom: '0.75rem',
+              }}
+            >
+              Shu hisob bilan CLI ni ulash
+            </button>
+            <button
+              onClick={handleSwitchAccount}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-hover)',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              Boshqa hisobga o&apos;tish (chiqish va qayta kirish)
+            </button>
+          </>
+        )}
+
+        {!invalidRequest && status !== 'success' && status !== 'error' && status !== 'confirm_account' && (
           <>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1.5rem' }}>
               Terminaldagi <code>mrcipher</code> CLI ni ushbu hisobingizga ulash

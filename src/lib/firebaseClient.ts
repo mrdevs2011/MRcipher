@@ -57,3 +57,6 @@ export function getFirestoreInstance() {
 }
 
 export const googleProvider = new GoogleAuthProvider();
+// Har doim akkaunt tanlash oynasini ko'rsatish — brauzerda bitta Google
+// sessiyasi bor deb, jimgina o'sha hisobga kirib ketmasligi uchun.
+googleProvider.setCustomParameters({ prompt: 'select_account' });
