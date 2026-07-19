@@ -9,6 +9,7 @@ import {
   ChatIcon,
   CheckIcon,
   CloseIcon,
+  DocIcon,
   ExclamationIcon,
   KeyIcon,
   LockIcon,
@@ -17,8 +18,17 @@ import {
 } from '@/components/Icons';
 import { ApiKeyPublicView } from '@/lib/types';
 
+type AppTab = 'translator' | 'keys' | 'docs';
+
+const NAV_ITEMS: { key: AppTab; label: string; icon: (props: { size?: number }) => JSX.Element }[] = [
+  { key: 'translator', label: 'Tarjimon', icon: ChatIcon },
+  { key: 'keys', label: 'API kalitlar', icon: KeyIcon },
+  { key: 'docs', label: 'Hujjatlar', icon: DocIcon },
+];
+
 export default function HomePage() {
   const { user, loading, signInWithGoogle, logout, refreshIdToken, signInError, clearSignInError } = useAuth();
+  const [activeTab, setActiveTab] = useState<AppTab>('translator');
   const [apiKeys, setApiKeys] = useState<ApiKeyPublicView[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -517,11 +527,11 @@ export default function HomePage() {
         <div className="navbar-inner container">
           <a href="/" className="brand">
             <Logo size={28} />
-            MRcipher
+            <span className="brand-text">MRcipher</span>
           </a>
           {user ? (
             <div className="nav-user">
-              <span className="email">{user.email}</span>
+              <span className="email" title={user.email ?? ''}>{user.email}</span>
               <button className="btn btn-ghost btn-sm" onClick={logout}>
                 Chiqish
               </button>
@@ -534,9 +544,9 @@ export default function HomePage() {
         </div>
       </nav>
 
+      {!user ? (
       <main>
         <div className="container">
-        {!user ? (
           <section className="hero">
             <div className="badge">
               <span className="badge-dot" />
@@ -589,18 +599,36 @@ export default function HomePage() {
               </div>
             </div>
           </section>
-        ) : (
-          <>
-            <section className='card mb-1'>
-              <div className="card-header">
-                <div>
-                  <div className="card-title">Xush kelibsiz</div>
-                  <p className="card-desc" >{user.email}</p>
-                </div>
-                <button className="btn btn-secondary btn-sm" onClick={logout}>Chiqish</button>
-              </div>
-            </section>
+        </div>
+      </main>
+      ) : (
+      <div className="app-shell">
+        <aside className="sidebar">
+          <div className="sidebar-user">
+            <div className="sidebar-avatar">{(user.email ?? '?').charAt(0).toUpperCase()}</div>
+            <div className="sidebar-user-info">
+              <div className="sidebar-email" title={user.email ?? ''}>{user.email}</div>
+              <button className="btn btn-ghost btn-sm" onClick={logout}>Chiqish</button>
+            </div>
+          </div>
+          <nav className="sidebar-nav">
+            {NAV_ITEMS.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`sidebar-link ${activeTab === item.key ? 'active' : ''}`}
+                onClick={() => setActiveTab(item.key)}
+              >
+                <item.icon size={18} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
+        </aside>
 
+        <main className="app-main">
+          <div className="container">
+            {activeTab === 'translator' && (
             <section className='card mb-1'>
               <div className="card-header translator-header">
                 <div>
@@ -743,7 +771,10 @@ export default function HomePage() {
               )}
 
             </section>
+            )}
 
+            {activeTab === 'keys' && (
+            <>
             <section className='card mb-1'>
               <div className="card-header key-card-header">
                 <div>
@@ -962,7 +993,10 @@ export default function HomePage() {
                 />
               </section>
             )}
+            </>
+            )}
 
+            {activeTab === 'docs' && (
             <section className='card mt-1'>
               <div className="card-title">Endpointlar</div>
               <p className="card-desc">So&apos;rovlarda quyidagi sarlavha bo&apos;lishi shart.</p>
@@ -986,20 +1020,44 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="mt-1 text-center">
+              <div className="mt-1 text-center" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <a href="/doc" className="btn btn-secondary">
                   Dasturchi uchun qo‘llanma
                 </a>
+                <a href="/verify" className="btn btn-secondary">
+                  Fayl hash&apos;ini solishtirish
+                </a>
               </div>
             </section>
-          </>
-        )}
-        </div>
-      </main>
+            )}
+          </div>
 
-      <footer className="footer">
-        <p className="text-muted">MRcipher — AES-256-GCM Encryption-as-a-Service</p>
-      </footer>
+          <footer className="footer app-footer">
+            <p className="text-muted">MRcipher — AES-256-GCM Encryption-as-a-Service</p>
+          </footer>
+        </main>
+
+        <nav className="bottom-tabbar">
+          {NAV_ITEMS.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={`bottom-tab ${activeTab === item.key ? 'active' : ''}`}
+              onClick={() => setActiveTab(item.key)}
+            >
+              <item.icon size={20} />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
+      )}
+
+      {!user && (
+        <footer className="footer">
+          <p className="text-muted">MRcipher — AES-256-GCM Encryption-as-a-Service</p>
+        </footer>
+      )}
     </div>
   );
 }
