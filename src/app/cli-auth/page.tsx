@@ -47,7 +47,45 @@ function CliAuthInner() {
   // false bo'lsa — bu sahifa ochilganda brauzerda AVVALDAN saqlangan
   // sessiya borligini bildiradi, va bunday holatda avtomatik davom
   // etmasdan, foydalanuvchidan tasdiq so'raymiz.
-  const justSignedInRef = useRef(false);
+  //
+  // MUHIM: kirish endi signInWithRedirect() orqali amalga oshadi, ya'ni
+  // Google'dan qaytgach butun sahifa QAYTA yuklanadi va oddiy useRef(false)
+  // holati yo'qolib, false'ga qaytib ketardi. Shuning uchun bu niyatni
+  // sessionStorage'da saqlaymiz — u tab ichidagi navigatsiyalarda saqlanib
+  // qoladi — va birinchi render vaqtida (useState lazy init bilan, effect'lar
+  // ishga tushishidan OLDIN) ref'ga o'qib olamiz.
+  const JUST_SIGNED_IN_KEY = 'mrcipher_cli_just_signed_in';
+  const [initialJustSignedIn] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const flag = window.sessionStorage.getItem(JUST_SIGNED_IN_KEY) === '1';
+      if (flag) window.sessionStorage.removeItem(JUST_SIGNED_IN_KEY);
+      return flag;
+    } catch {
+      return false;
+    }
+  });
+  const justSignedInRef = useRef(initialJustSignedIn);
+
+  function markJustSigningIn() {
+    justSignedInRef.current = true;
+    try {
+      window.sessionStorage.setItem(JUST_SIGNED_IN_KEY, '1');
+    } catch {
+      // sessionStorage mavjud bo'lmasa (masalan juda cheklangan xususiy
+      // rejim) — muhim emas, faqat redirect'dan qaytgach avtomatik davom
+      // etish ishlamay, "Bu hisob bilan davom etish?" so'ralishi mumkin.
+    }
+  }
+
+  function clearJustSigningIn() {
+    justSignedInRef.current = false;
+    try {
+      window.sessionStorage.removeItem(JUST_SIGNED_IN_KEY);
+    } catch {
+      // e'tiborsiz
+    }
+  }
 
   const invalidRequest = !port || !/^\d{2,5}$/.test(port);
 
@@ -129,30 +167,38 @@ function CliAuthInner() {
   }, [invalidRequest, port, session, deviceLabel, mode, refreshIdToken, user]);
 
   useEffect(() => {
-    if (loading || invalidRequest) return;
-    if (user && status === 'idle') {
-      if (justSignedInRef.current) {
-        // Foydalanuvchi shu yerda, hozir, aniq ravishda kirdi — qo'shimcha
-        // tasdiqsiz davom etamiz.
-        justSignedInRef.current = false;
-        void completeHandoff();
-      } else {
-        // Brauzerda avvaldan saqlangan sessiya bor edi. Jimgina o'sha
-        // hisobga o'tib ketmasdan, avval tasdiq so'raymiz.
-        setStatus('confirm_account');
-      }
+    if (loading || invalidRequest || !user) return;
+
+    if (justSignedInRef.current) {
+      // Foydalanuvchi shu yerda, hozir, aniq ravishda kirdi — qo'shimcha
+      // tasdiqsiz davom etamiz. Statusga qaramaymiz: handleSignIn() allaqachon
+      // uni 'signing_in'ga o'zgartirgan va u endi hech qachon 'idle'ga
+      // qaytmaydi, shuning uchun `status === 'idle'` sharti bu yerda noto'g'ri.
+      clearJustSigningIn();
+      setStatus('signing_in');
+      void completeHandoff();
+      return;
+    }
+
+    if (status === 'idle') {
+      // Brauzerda avvaldan saqlangan sessiya bor edi. Jimgina o'sha
+      // hisobga o'tib ketmasdan, avval tasdiq so'raymiz.
+      setStatus('confirm_account');
     }
   }, [loading, user, status, invalidRequest, completeHandoff]);
 
   async function handleSignIn() {
     setError('');
-    justSignedInRef.current = true;
+    markJustSigningIn();
     setStatus('signing_in');
     try {
       await signInWithGoogle();
-      // onAuthStateChanged -> user o'rnatiladi -> yuqoridagi useEffect handoff'ni davom ettiradi.
+      // Odatda bu qatorga yetib kelinmaydi — signInWithRedirect() brauzerni
+      // Google'ga olib ketadi. Qaytib kelgach, sahifa qayta yuklanadi va
+      // yuqoridagi useEffect (sessionStorage'dagi belgi orqali) handoff'ni
+      // avtomatik davom ettiradi.
     } catch {
-      justSignedInRef.current = false;
+      clearJustSigningIn();
       setStatus('idle');
     }
   }
@@ -168,10 +214,10 @@ function CliAuthInner() {
       // Avval to'liq chiqamiz, so'ng hisob tanlash oynasi bilan qaytadan
       // kiramiz — shunda foydalanuvchi boshqa Google hisobini tanlay oladi.
       await logout();
-      justSignedInRef.current = true;
+      markJustSigningIn();
       await signInWithGoogle();
     } catch {
-      justSignedInRef.current = false;
+      clearJustSigningIn();
       setStatus('idle');
     }
   }

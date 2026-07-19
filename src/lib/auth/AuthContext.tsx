@@ -9,7 +9,8 @@ import {
 } from 'react';
 import {
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   User,
 } from 'firebase/auth';
@@ -45,31 +46,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signInWithGoogle(): Promise<void> {
     setSignInError(null);
     try {
-      const result = await signInWithPopup(getAuthInstance(), googleProvider);
-      if (result.user) {
-        const token = await result.user.getIdToken();
-        setIdToken(token);
-      }
+      // MUHIM: popup emas, redirect ishlatamiz. signInWithPopup() Firebase
+      // popup oynasi bilan asosiy oyna o'rtasida IndexedDB orqali natija
+      // almashishga tayanadi. Firefox'ning Total Cookie Protection (va
+      // Safari'ning ITP) xususiyati bu storage'ni saytlar bo'yicha ajratib
+      // qo'yadi — natijada Google'da hisob tanlangandan keyin ham promise
+      // hech qachon resolve bo'lmaydi va xatolik ham tashlanmaydi (sahifa
+      // abadiy "Yuklanmoqda…"da qolib ketadi). Redirect esa shu muammoni
+      // butunlay chetlab o'tadi, chunki bir xil oyna/tab ichida navigatsiya
+      // qilinadi. Muvaffaqiyat/hatolik natijasi keyingi sahifa yuklanganda
+      // getRedirectResult() orqali (pastdagi useEffect) qayta ishlanadi.
+      await signInWithRedirect(getAuthInstance(), googleProvider);
+      // Odatda bu qatorga hech qachon yetib kelinmaydi — brauzer Google
+      // sahifasiga o'tib ketadi.
     } catch (err: any) {
-      // Brauzer popup ni bloklaganda DOMException "Blocked" yoki "AbortError" beradi.
-      const isPopupBlocked =
-        err?.name === 'Blocked' ||
-        err?.message?.toLowerCase().includes('popup');
-
-      if (isPopupBlocked) {
-        setSignInError(
-          'Brauzer Google oynasini (popup) blokladi. Iltimos, saytga popup ochish ruxsatini bering va qayta urinib ko\'ring.',
-        );
-      } else if (err?.code === 'auth/popup-closed-by-user') {
-        setSignInError('Kirish oynasi yopildi. Qayta urinib ko\'ring.');
-      } else if (err?.code === 'auth/cancelled-popup-request') {
-        // Bir nechta parallel popup so'rov — e'tiborsiz.
-        return;
-      } else {
-        setSignInError(
-          err?.message || 'Google bilan kirishda noma\'lum xatolik yuz berdi.',
-        );
-      }
+      setSignInError(
+        err?.message || 'Google bilan kirishda noma\'lum xatolik yuz berdi.',
+      );
       throw err;
     }
   }
@@ -85,6 +78,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    // Redirect orqali Google'dan qaytib kelgan bo'lsak, natija (yoki
+    // xatolik) shu yerda ushlanadi. onAuthStateChanged pastda baribir
+    // yangi userni beradi — bu yerda faqat xatoliklarni ko'rsatamiz.
+    getRedirectResult(getAuthInstance()).catch((err: any) => {
+      if (err?.code === 'auth/account-exists-with-different-credential') {
+        setSignInError(
+          "Bu email boshqa kirish usuli bilan bog'langan. Boshqa usulda kiring.",
+        );
+      } else if (err?.code) {
+        setSignInError(
+          err?.message || 'Google bilan kirishda noma\'lum xatolik yuz berdi.',
+        );
+      }
+    });
+
     const unsubscribe = onAuthStateChanged(getAuthInstance(), async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
