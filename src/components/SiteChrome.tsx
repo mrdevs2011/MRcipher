@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Logo } from '@/components/Logo';
-import { ChatIcon, KeyIcon, WrenchIcon, DocIcon, CheckIcon, PanelToggleIcon, MoreIcon } from '@/components/Icons';
+import { ChatIcon, KeyIcon, DocIcon, CheckIcon, PanelToggleIcon, MoreIcon } from '@/components/Icons';
 
 /**
  * Butun ilova bo'ylab bir xil header, sidebar, bottom-tabbar va footer.
@@ -12,7 +12,7 @@ import { ChatIcon, KeyIcon, WrenchIcon, DocIcon, CheckIcon, PanelToggleIcon, Mor
  * (bosh sahifa, /verify, /doc) doim MRcipher ichida ekanini his qiladi.
  */
 
-export type NavKey = 'translator' | 'keys' | 'docs' | 'guide' | 'verify';
+export type NavKey = 'translator' | 'keys' | 'guide' | 'verify';
 
 type NavItem = {
   key: NavKey;
@@ -26,7 +26,6 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { key: 'translator', label: 'Tarjimon', href: '/', icon: ChatIcon, isDashboardTab: true },
   { key: 'keys', label: 'API kalitlar', href: '/?tab=keys', icon: KeyIcon, isDashboardTab: true },
-  { key: 'docs', label: 'Endpointlar', href: '/?tab=docs', icon: WrenchIcon, isDashboardTab: true },
   { key: 'guide', label: 'Qo\u2018llanma', href: '/doc', icon: DocIcon },
   { key: 'verify', label: 'Fayl tekshirish', href: '/verify', icon: CheckIcon },
 ];

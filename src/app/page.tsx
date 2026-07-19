@@ -17,7 +17,7 @@ import {
 } from '@/components/Icons';
 import { ApiKeyPublicView } from '@/lib/types';
 
-type AppTab = 'translator' | 'keys' | 'docs';
+type AppTab = 'translator' | 'keys';
 
 export default function HomePage() {
   const { user, loading, signInWithGoogle, refreshIdToken, signInError, clearSignInError } = useAuth();
@@ -52,7 +52,7 @@ export default function HomePage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const tab = new URLSearchParams(window.location.search).get('tab');
-    if (tab === 'translator' || tab === 'keys' || tab === 'docs') {
+    if (tab === 'translator' || tab === 'keys') {
       setActiveTab(tab);
     }
   }, []);
@@ -952,40 +952,6 @@ export default function HomePage() {
             </>
             )}
 
-            {activeTab === 'docs' && (
-            <section className='card mt-1'>
-              <div className="card-title">Endpointlar</div>
-              <p className="card-desc">So&apos;rovlarda quyidagi sarlavha bo&apos;lishi shart.</p>
-              <pre className="code-block">{`Authorization: Bearer <apiKey>`}</pre>
-              <div className="endpoint-grid mt-1">
-                <div className="feature-card">
-                  <div className="feature-title text-primary">POST /api/v1/encrypt</div>
-                  <p className="feature-desc">JSON ma&apos;lumotni shifrlaydi va ciphertext qaytaradi.</p>
-                </div>
-                <div className="feature-card">
-                  <div className="feature-title text-primary">POST /api/v1/decrypt</div>
-                  <p className="feature-desc">Ciphertext ni ochib, asl JSON ma&apos;lumotni qaytaradi.</p>
-                </div>
-                <div className="feature-card">
-                  <div className="feature-title text-primary">GET /api/v1/health</div>
-                  <p className="feature-desc">API key va Firestore holatini tekshiradi.</p>
-                </div>
-                <div className="feature-card">
-                  <div className="feature-title text-primary">GET /api/v1/usage</div>
-                  <p className="feature-desc">Foydalanish statistikasi: shifrlash/ochish soni.</p>
-                </div>
-              </div>
-
-              <div className="mt-1 text-center" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <a href="/doc" className="btn btn-secondary">
-                  Dasturchi uchun qo‘llanma
-                </a>
-                <a href="/verify" className="btn btn-secondary">
-                  Fayl hash&apos;ini solishtirish
-                </a>
-              </div>
-            </section>
-            )}
           </div>
 
           <SiteFooter variant="app" />

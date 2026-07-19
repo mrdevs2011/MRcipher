@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckIcon, CloseIcon, AlertTriangleIcon } from '@/components/Icons';
 import { SiteHeader, SiteSidebar, SiteBottomNav, SiteFooter } from '@/components/SiteChrome';
 
@@ -107,11 +107,15 @@ function FileSlot({
   state,
   onFile,
   onClear,
+  onMouseEnter,
+  onMouseLeave,
 }: {
   label: string;
   state: SlotState;
   onFile: (file: File) => void;
   onClear: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -145,6 +149,8 @@ function FileSlot({
         onKeyDown={(e) => {
           if (!state.file && (e.key === 'Enter' || e.key === ' ')) inputRef.current?.click();
         }}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         onDragOver={(e) => {
           e.preventDefault();
           setDragging(true);
@@ -243,6 +249,7 @@ function FileSlot({
 }
 
 type VerifyMode = 'compare' | 'single';
+type SlotKey = 'A' | 'B' | 'single';
 
 export default function VerifyPage() {
   const [mode, setMode] = useState<VerifyMode>('compare');
@@ -250,6 +257,10 @@ export default function VerifyPage() {
   const [slotA, setSlotA] = useState<SlotState>(EMPTY_SLOT);
   const [slotB, setSlotB] = useState<SlotState>(EMPTY_SLOT);
   const [slotSingle, setSlotSingle] = useState<SlotState>(EMPTY_SLOT);
+
+  // Qaysi box hozir sichqoncha ostida turgani — shu orqali "hover + Ctrl+V"
+  // qaysi boxga fayl joylashtirishni bilishimiz uchun kerak.
+  const [hoveredSlot, setHoveredSlot] = useState<SlotKey | null>(null);
 
   const runHash = useCallback(
     (file: File, setSlot: React.Dispatch<React.SetStateAction<SlotState>>) => {
@@ -283,6 +294,34 @@ export default function VerifyPage() {
   const clearA = useCallback(() => setSlotA(EMPTY_SLOT), []);
   const clearB = useCallback(() => setSlotB(EMPTY_SLOT), []);
   const clearSingle = useCallback(() => setSlotSingle(EMPTY_SLOT), []);
+
+  // Sichqoncha biror box ustida bo'lganda Ctrl+V bosilsa, shu boxga fayl
+  // joylashtiriladi. Bu global (window) darajasida ishlaydi, chunki oddiy
+  // <div> hover holatida (fokussiz) paste hodisasini har doim ham
+  // qo'lga olavermaydi — shu sababli hover holatini o'zimiz kuzatib,
+  // clipboard'ni window darajasida o'qiymiz.
+  useEffect(() => {
+    function handleWindowPaste(e: ClipboardEvent) {
+      if (!hoveredSlot) return;
+      const files = e.clipboardData?.files;
+      if (!files || files.length === 0) return;
+
+      e.preventDefault();
+      const file = files[0];
+      if (hoveredSlot === 'A') handleFileA(file);
+      else if (hoveredSlot === 'B') handleFileB(file);
+      else if (hoveredSlot === 'single') handleFileSingle(file);
+    }
+
+    window.addEventListener('paste', handleWindowPaste);
+    return () => window.removeEventListener('paste', handleWindowPaste);
+  }, [hoveredSlot, handleFileA, handleFileB, handleFileSingle]);
+
+  // Rejim almashtirilganda (masalan compare -> single) eskirib qolgan hover
+  // holatini tozalaymiz, chunki tegishli box endi ekranda bo'lmasligi mumkin.
+  useEffect(() => {
+    setHoveredSlot(null);
+  }, [mode]);
 
   const bothReady = Boolean(slotA.hash && slotB.hash);
   const isMatch = bothReady && slotA.hash === slotB.hash;
@@ -338,8 +377,22 @@ export default function VerifyPage() {
             {mode === 'compare' ? (
               <>
                 <div className="verify-grid">
-                  <FileSlot label="1-fayl (A)" state={slotA} onFile={handleFileA} onClear={clearA} />
-                  <FileSlot label="2-fayl (B)" state={slotB} onFile={handleFileB} onClear={clearB} />
+                  <FileSlot
+                    label="1-fayl (A)"
+                    state={slotA}
+                    onFile={handleFileA}
+                    onClear={clearA}
+                    onMouseEnter={() => setHoveredSlot('A')}
+                    onMouseLeave={() => setHoveredSlot((prev) => (prev === 'A' ? null : prev))}
+                  />
+                  <FileSlot
+                    label="2-fayl (B)"
+                    state={slotB}
+                    onFile={handleFileB}
+                    onClear={clearB}
+                    onMouseEnter={() => setHoveredSlot('B')}
+                    onMouseLeave={() => setHoveredSlot((prev) => (prev === 'B' ? null : prev))}
+                  />
                 </div>
 
                 {bothReady && (
@@ -375,6 +428,8 @@ export default function VerifyPage() {
                   state={slotSingle}
                   onFile={handleFileSingle}
                   onClear={clearSingle}
+                  onMouseEnter={() => setHoveredSlot('single')}
+                  onMouseLeave={() => setHoveredSlot((prev) => (prev === 'single' ? null : prev))}
                 />
               </div>
             )}
