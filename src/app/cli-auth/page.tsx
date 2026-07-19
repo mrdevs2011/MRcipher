@@ -1,9 +1,10 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { Logo } from '@/components/Logo';
+import { AuthForm } from '@/components/AuthForm';
 
 /**
  * /cli-auth — mrcipher-cli uchun brauzer orqali login sahifasi.
@@ -11,7 +12,8 @@ import { Logo } from '@/components/Logo';
  * `mrcipher login` buyrug'i quyidagicha ishlaydi:
  *   1. CLI localhost'da vaqtinchalik HTTP server ochadi (masalan port 51823).
  *   2. CLI shu sahifani ochadi: /cli-auth?port=51823&session=<random>
- *   3. Foydalanuvchi shu yerda (xuddi saytdagidek) Google bilan kiradi.
+ *   3. Foydalanuvchi shu yerda (xuddi saytdagidek) email va parol bilan
+ *      kiradi yoki ro'yxatdan o'tadi.
  *   4. Login muvaffaqiyatli bo'lgach, sahifa /api/v1/keys orqali "CLI" nomli
  *      yangi API key yaratadi va uni faqat localhost'dagi CLI serveriga
  *      (http://127.0.0.1:<port>/callback) yuboradi — boshqa hech qayerga emas.
@@ -39,53 +41,9 @@ function CliAuthInner() {
   //             is owner-auth only and doesn't accept the saved API key)
   const mode = params.get('mode') === 'token' ? 'token' : 'key';
 
-  const { user, loading, signInWithGoogle, logout, refreshIdToken, signInError } = useAuth();
+  const { user, loading, logout, refreshIdToken } = useAuth();
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
-  // true faqat foydalanuvchi shu sahifada "Google bilan kirish" tugmasini
-  // bosib, sign-in oqimini hozir, aniq ravishda o'zi boshlagan bo'lsa.
-  // false bo'lsa — bu sahifa ochilganda brauzerda AVVALDAN saqlangan
-  // sessiya borligini bildiradi, va bunday holatda avtomatik davom
-  // etmasdan, foydalanuvchidan tasdiq so'raymiz.
-  //
-  // MUHIM: kirish endi signInWithRedirect() orqali amalga oshadi, ya'ni
-  // Google'dan qaytgach butun sahifa QAYTA yuklanadi va oddiy useRef(false)
-  // holati yo'qolib, false'ga qaytib ketardi. Shuning uchun bu niyatni
-  // sessionStorage'da saqlaymiz — u tab ichidagi navigatsiyalarda saqlanib
-  // qoladi — va birinchi render vaqtida (useState lazy init bilan, effect'lar
-  // ishga tushishidan OLDIN) ref'ga o'qib olamiz.
-  const JUST_SIGNED_IN_KEY = 'mrcipher_cli_just_signed_in';
-  const [initialJustSignedIn] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      const flag = window.sessionStorage.getItem(JUST_SIGNED_IN_KEY) === '1';
-      if (flag) window.sessionStorage.removeItem(JUST_SIGNED_IN_KEY);
-      return flag;
-    } catch {
-      return false;
-    }
-  });
-  const justSignedInRef = useRef(initialJustSignedIn);
-
-  function markJustSigningIn() {
-    justSignedInRef.current = true;
-    try {
-      window.sessionStorage.setItem(JUST_SIGNED_IN_KEY, '1');
-    } catch {
-      // sessionStorage mavjud bo'lmasa (masalan juda cheklangan xususiy
-      // rejim) — muhim emas, faqat redirect'dan qaytgach avtomatik davom
-      // etish ishlamay, "Bu hisob bilan davom etish?" so'ralishi mumkin.
-    }
-  }
-
-  function clearJustSigningIn() {
-    justSignedInRef.current = false;
-    try {
-      window.sessionStorage.removeItem(JUST_SIGNED_IN_KEY);
-    } catch {
-      // e'tiborsiz
-    }
-  }
 
   const invalidRequest = !port || !/^\d{2,5}$/.test(port);
 
@@ -95,7 +53,7 @@ function CliAuthInner() {
     try {
       const idToken = await refreshIdToken();
       if (!idToken) {
-        throw new Error('Google login tokeni topilmadi. Qayta urinib ko\'ring.');
+        throw new Error('Login tokeni topilmadi. Qayta urinib ko\'ring.');
       }
 
       let payload: Record<string, unknown>;
@@ -167,16 +125,10 @@ function CliAuthInner() {
   }, [invalidRequest, port, session, deviceLabel, mode, refreshIdToken, user]);
 
   useEffect(() => {
-    if (loading || invalidRequest || !user) return;
+    if (loading || invalidRequest) return;
 
-    if (justSignedInRef.current) {
-      // Foydalanuvchi shu yerda, hozir, aniq ravishda kirdi — qo'shimcha
-      // tasdiqsiz davom etamiz. Statusga qaramaymiz: handleSignIn() allaqachon
-      // uni 'signing_in'ga o'zgartirgan va u endi hech qachon 'idle'ga
-      // qaytmaydi, shuning uchun `status === 'idle'` sharti bu yerda noto'g'ri.
-      clearJustSigningIn();
-      setStatus('signing_in');
-      void completeHandoff();
+    if (!user) {
+      if (status !== 'idle') setStatus('idle');
       return;
     }
 
@@ -185,22 +137,12 @@ function CliAuthInner() {
       // hisobga o'tib ketmasdan, avval tasdiq so'raymiz.
       setStatus('confirm_account');
     }
-  }, [loading, user, status, invalidRequest, completeHandoff]);
+  }, [loading, user, status, invalidRequest]);
 
-  async function handleSignIn() {
+  function handleAuthSuccess() {
     setError('');
-    markJustSigningIn();
     setStatus('signing_in');
-    try {
-      await signInWithGoogle();
-      // Odatda bu qatorga yetib kelinmaydi — signInWithRedirect() brauzerni
-      // Google'ga olib ketadi. Qaytib kelgach, sahifa qayta yuklanadi va
-      // yuqoridagi useEffect (sessionStorage'dagi belgi orqali) handoff'ni
-      // avtomatik davom ettiradi.
-    } catch {
-      clearJustSigningIn();
-      setStatus('idle');
-    }
+    void completeHandoff();
   }
 
   function handleContinueWithCurrentAccount() {
@@ -209,17 +151,10 @@ function CliAuthInner() {
 
   async function handleSwitchAccount() {
     setError('');
-    setStatus('signing_in');
-    try {
-      // Avval to'liq chiqamiz, so'ng hisob tanlash oynasi bilan qaytadan
-      // kiramiz — shunda foydalanuvchi boshqa Google hisobini tanlay oladi.
-      await logout();
-      markJustSigningIn();
-      await signInWithGoogle();
-    } catch {
-      clearJustSigningIn();
-      setStatus('idle');
-    }
+    // Avval to'liq chiqamiz, so'ng foydalanuvchi boshqa email/parol bilan
+    // qayta kira oladi.
+    await logout();
+    setStatus('idle');
   }
 
   return (
@@ -268,12 +203,6 @@ function CliAuthInner() {
               {user?.email}
             </p>
 
-            {signInError && (
-              <p style={{ color: 'var(--danger)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-                {signInError}
-              </p>
-            )}
-
             <button
               onClick={handleContinueWithCurrentAccount}
               style={{
@@ -310,50 +239,27 @@ function CliAuthInner() {
           </>
         )}
 
-        {!invalidRequest && status !== 'success' && status !== 'error' && status !== 'confirm_account' && (
+        {!invalidRequest && status === 'idle' && !loading && !user && (
           <>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1.5rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1.25rem' }}>
               Terminaldagi <code>mrcipher</code> CLI ni ushbu hisobingizga ulash
-              uchun Google bilan kiring.
+              uchun email va parol bilan kiring.
             </p>
-
-            {signInError && (
-              <p style={{ color: 'var(--danger)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-                {signInError}
-              </p>
-            )}
-
-            {status === 'idle' && !loading && (
-              <button
-                onClick={handleSignIn}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-hover)',
-                  background: 'var(--bg-input)',
-                  color: 'var(--text)',
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Google bilan kirish
-              </button>
-            )}
-
-            {(loading ||
-              status === 'signing_in' ||
-              status === 'creating_key' ||
-              status === 'sending_to_cli') && (
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>
-                {status === 'creating_key' && "API key yaratilmoqda…"}
-                {status === 'sending_to_cli' && "Terminalga uzatilmoqda…"}
-                {(loading || status === 'signing_in') && 'Yuklanmoqda…'}
-              </p>
-            )}
+            <AuthForm onSuccess={handleAuthSuccess} />
           </>
         )}
+
+        {!invalidRequest &&
+          (loading ||
+            status === 'signing_in' ||
+            status === 'creating_key' ||
+            status === 'sending_to_cli') && (
+            <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>
+              {status === 'creating_key' && "API key yaratilmoqda…"}
+              {status === 'sending_to_cli' && "Terminalga uzatilmoqda…"}
+              {(loading || status === 'signing_in') && 'Yuklanmoqda…'}
+            </p>
+          )}
 
         {status === 'success' && (
           <>

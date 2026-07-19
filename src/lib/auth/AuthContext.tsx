@@ -9,25 +9,54 @@ import {
 } from 'react';
 import {
   onAuthStateChanged,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut,
   User,
 } from 'firebase/auth';
-import { getAuthInstance, googleProvider } from '../firebaseClient';
+import { getAuthInstance } from '../firebaseClient';
 
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
   idToken: string | null;
   signInError: string | null;
-  signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshIdToken: () => Promise<string | null>;
   clearSignInError: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+/**
+ * Firebase'ning email/parol xatolik kodlarini foydalanuvchiga tushunarli
+ * o'zbekcha xabarlarga aylantiradi.
+ */
+function friendlyAuthError(err: any): string {
+  const code = err?.code as string | undefined;
+  switch (code) {
+    case 'auth/invalid-email':
+      return "Email manzili noto'g'ri formatda.";
+    case 'auth/user-disabled':
+      return 'Bu hisob bloklangan.';
+    case 'auth/user-not-found':
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+      return "Email yoki parol noto'g'ri.";
+    case 'auth/email-already-in-use':
+      return "Bu email bilan hisob allaqachon mavjud. \"Kirish\" bo'limidan foydalaning.";
+    case 'auth/weak-password':
+      return 'Parol juda oddiy. Kamida 6 ta belgidan foydalaning.';
+    case 'auth/too-many-requests':
+      return "Juda ko'p urinish. Biroz kutib, qayta urinib ko'ring.";
+    case 'auth/network-request-failed':
+      return 'Tarmoq xatosi. Internet aloqangizni tekshiring.';
+    default:
+      return err?.message || "Noma'lum xatolik yuz berdi.";
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -43,26 +72,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return token;
   }
 
-  async function signInWithGoogle(): Promise<void> {
+  async function signInWithEmail(email: string, password: string): Promise<void> {
     setSignInError(null);
     try {
-      // MUHIM: popup emas, redirect ishlatamiz. signInWithPopup() Firebase
-      // popup oynasi bilan asosiy oyna o'rtasida IndexedDB orqali natija
-      // almashishga tayanadi. Firefox'ning Total Cookie Protection (va
-      // Safari'ning ITP) xususiyati bu storage'ni saytlar bo'yicha ajratib
-      // qo'yadi — natijada Google'da hisob tanlangandan keyin ham promise
-      // hech qachon resolve bo'lmaydi va xatolik ham tashlanmaydi (sahifa
-      // abadiy "Yuklanmoqda…"da qolib ketadi). Redirect esa shu muammoni
-      // butunlay chetlab o'tadi, chunki bir xil oyna/tab ichida navigatsiya
-      // qilinadi. Muvaffaqiyat/hatolik natijasi keyingi sahifa yuklanganda
-      // getRedirectResult() orqali (pastdagi useEffect) qayta ishlanadi.
-      await signInWithRedirect(getAuthInstance(), googleProvider);
-      // Odatda bu qatorga hech qachon yetib kelinmaydi — brauzer Google
-      // sahifasiga o'tib ketadi.
+      await signInWithEmailAndPassword(getAuthInstance(), email, password);
     } catch (err: any) {
-      setSignInError(
-        err?.message || 'Google bilan kirishda noma\'lum xatolik yuz berdi.',
-      );
+      setSignInError(friendlyAuthError(err));
+      throw err;
+    }
+  }
+
+  async function signUpWithEmail(email: string, password: string): Promise<void> {
+    setSignInError(null);
+    try {
+      await createUserWithEmailAndPassword(getAuthInstance(), email, password);
+    } catch (err: any) {
+      setSignInError(friendlyAuthError(err));
       throw err;
     }
   }
@@ -78,21 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    // Redirect orqali Google'dan qaytib kelgan bo'lsak, natija (yoki
-    // xatolik) shu yerda ushlanadi. onAuthStateChanged pastda baribir
-    // yangi userni beradi — bu yerda faqat xatoliklarni ko'rsatamiz.
-    getRedirectResult(getAuthInstance()).catch((err: any) => {
-      if (err?.code === 'auth/account-exists-with-different-credential') {
-        setSignInError(
-          "Bu email boshqa kirish usuli bilan bog'langan. Boshqa usulda kiring.",
-        );
-      } else if (err?.code) {
-        setSignInError(
-          err?.message || 'Google bilan kirishda noma\'lum xatolik yuz berdi.',
-        );
-      }
-    });
-
     const unsubscribe = onAuthStateChanged(getAuthInstance(), async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
@@ -112,7 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     idToken,
     signInError,
-    signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
     logout,
     refreshIdToken,
     clearSignInError,

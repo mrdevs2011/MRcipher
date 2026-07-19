@@ -68,8 +68,8 @@ export default function DocPage() {
             <ol className="doc-steps">
               <li>
                 <strong>MRcipher saytiga kiring:</strong>{' '}
-                <a href="/">mrcipher.vercel.app</a> orqali Google hisobi bilan tizimga
-                kiring.
+                <a href="/">mrcipher.vercel.app</a> orqali email va parol bilan
+                tizimga kiring (yoki ro&rsquo;yxatdan o&rsquo;ting).
               </li>
               <li>
                 <strong>API key yaratish tugmasini bosing:</strong> Kalit nomini

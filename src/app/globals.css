@@ -274,6 +274,22 @@ body {
   margin-bottom: 2rem;
 }
 
+.auth-form {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto 2rem;
+  text-align: left;
+}
+
+.auth-form-tabs {
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.auth-form-submit {
+  width: 100%;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

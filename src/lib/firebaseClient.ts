@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 function getFirebaseConfig() {
@@ -55,8 +55,3 @@ export function getAuthInstance() {
 export function getFirestoreInstance() {
   return getFirestore(getFirebaseApp());
 }
-
-export const googleProvider = new GoogleAuthProvider();
-// Har doim akkaunt tanlash oynasini ko'rsatish — brauzerda bitta Google
-// sessiyasi bor deb, jimgina o'sha hisobga kirib ketmasligi uchun.
-googleProvider.setCustomParameters({ prompt: 'select_account' });

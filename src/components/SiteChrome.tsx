@@ -131,7 +131,7 @@ function AccountMenu({ email, onLogout }: { email: string | null; onLogout: () =
 
 /** Barcha sahifalarda bir xil ko'rinadigan yuqori navbar. */
 export function SiteHeader() {
-  const { user, loading, signInWithGoogle, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
 
   return (
     <nav className="navbar">
@@ -146,9 +146,9 @@ export function SiteHeader() {
         ) : user ? (
           <AccountMenu email={user.email} onLogout={logout} />
         ) : (
-          <button className="btn btn-primary btn-sm" onClick={signInWithGoogle}>
-            Google bilan kirish
-          </button>
+          <Link href="/" className="btn btn-primary btn-sm">
+            Kirish
+          </Link>
         )}
       </div>
     </nav>

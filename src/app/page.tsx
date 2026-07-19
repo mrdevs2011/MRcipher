@@ -5,13 +5,13 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { getFirestoreInstance } from '@/lib/firebaseClient';
 import { Logo } from '@/components/Logo';
+import { AuthForm } from '@/components/AuthForm';
 import { CodeTemplates } from '@/components/CodeTemplates';
 import { SiteHeader, SiteSidebar, SiteBottomNav, SiteFooter, NavKey } from '@/components/SiteChrome';
 import {
   AlertTriangleIcon,
   ChatIcon,
   CloseIcon,
-  ExclamationIcon,
   KeyIcon,
   LockIcon,
   RefreshIcon,
@@ -22,7 +22,7 @@ import { ApiKeyPublicView } from '@/lib/types';
 type AppTab = 'translator' | 'keys';
 
 export default function HomePage() {
-  const { user, loading, signInWithGoogle, refreshIdToken, signInError, clearSignInError } = useAuth();
+  const { user, loading, refreshIdToken } = useAuth();
   const [activeTab, setActiveTab] = useState<AppTab>('translator');
   const [apiKeys, setApiKeys] = useState<ApiKeyPublicView[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -591,23 +591,7 @@ export default function HomePage() {
               qilamiz.
             </p>
 
-            {signInError && (
-              <div className="alert alert-error alert-inline">
-                <span className="alert-icon"><ExclamationIcon size={20} /></span>
-                <div className="alert-body">
-                  {signInError}
-                  <button className="btn btn-ghost btn-sm" onClick={clearSignInError}>
-                    Yopish
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="hero-actions">
-              <button className="btn btn-primary" onClick={signInWithGoogle}>
-                Google bilan boshlash
-              </button>
-            </div>
+            <AuthForm />
 
             <div className="grid-3 mt-2">
               <div className="feature-card">
