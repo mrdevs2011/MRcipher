@@ -13,10 +13,15 @@ export async function createOrUpdateUser(params: {
 }): Promise<void> {
   const { uid, email, displayName } = params;
 
+  // MUHIM: Firestore hujjat maydonida `undefined` qiymatga umuman yo'l
+  // qo'ymaydi (.set() xato tashlaydi). Google orqali kirganda `displayName`
+  // har doim mavjud edi, lekin email/parol bilan ro'yxatdan o'tishda
+  // Firebase uni o'rnatmaydi — shuning uchun bu maydonlarni faqat mavjud
+  // bo'lgandagina hujjatga qo'shamiz.
   const userDoc: Omit<UserDoc, 'created_at'> & { created_at: string } = {
     uid,
-    email,
-    display_name: displayName,
+    ...(email ? { email } : {}),
+    ...(displayName ? { display_name: displayName } : {}),
     created_at: new Date().toISOString(),
     last_seen_at: new Date().toISOString(),
   };
@@ -52,7 +57,7 @@ export async function createApiKey(params: {
     scopes?: string[];
   } = {
     uid,
-    email,
+    ...(email ? { email } : {}),
     name,
     api_key_raw: rawKey,
     api_key_prefix: apiKeyPrefix,
