@@ -9,9 +9,9 @@ type Mode = 'signin' | 'signup';
 /**
  * Email + parol orqali kirish/ro'yxatdan o'tish formasi.
  *
- * Saytda (bosh sahifada, foydalanuvchi kirmagan holatda) va CLI login
- * sahifasida (/cli-auth) bir xil ishlatiladi — CLI ham xuddi shu oynani
- * brauzerda ochadi.
+ * Faqat saytda (bosh sahifada, foydalanuvchi kirmagan holatda) ishlatiladi.
+ * mrcipher-cli endi brauzer ochmaydi — u Firebase Identity Toolkit REST
+ * API bilan to'g'ridan-to'g'ri, terminalning o'zida gaplashadi.
  */
 export function AuthForm({ onSuccess }: { onSuccess?: () => void }) {
   const { signInWithEmail, signUpWithEmail, signInError, clearSignInError } = useAuth();
